@@ -1,0 +1,405 @@
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------- Universo LT004, com row number para dar prioridade às garantias do MUG ------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+create table bu_captools_work.lt004_universo_gd_mar25_dg as
+
+SELECT 
+    CHAVE_BEM
+	,CHAVE_BEM_PRE
+	,ORIGEM
+FROM
+
+    (
+	SELECT 
+		CHAVE_BEM
+		,CHAVE_BEM_PRE
+		,ORIGEM
+		,ROW_NUMBER() OVER (PARTITION BY CHAVE_BEM ORDER BY CASE WHEN ORIGEM='MUG' OR ORIGEM='PM-F' OR ORIGEM='PM-I' OR ORIGEM='PM-P' THEN 1 ELSE 0 END DESC) AS ROW_1
+    FROM
+    
+	    (
+
+
+-- Universo Total
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------- 1. Universo de bens imóveis que são utilizados como garantias ------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+SELECT DISTINCT GT012.CHAVE_BEM, GT012.CHAVE_BEM_PRE,'MUG' AS ORIGEM
+FROM
+
+	(
+	SELECT INSTRMNT_ID
+    FROM bu_loantape_work.LT002_INSTRUMENT
+    WHERE ref_date='${ref_date}'
+    AND nome_perimetro= 'Individual Corporativo'
+    AND segmento= 'ESTR' 
+    AND ambito= 'PM'
+    AND entidade = '00100'
+    ) LT002
+    
+INNER JOIN
+	
+	(
+	SELECT DISTINCT 
+		CONCAT (CEMPRESA_FR, CBALCAO_FR, CNUMECTA_FR, ZDEPOSIT_FR) AS CHAVE_FINREP
+		,CONCAT (CEMPRESA, CBALCAO, CNUMECTA, ZDEPOSIT) AS CHAVE_MASTER
+	FROM cd_captools.kt_chaves_finrep
+	WHERE ref_date='${ref_date}'
+	) FR 
+	
+	    ON LT002.INSTRMNT_ID = FR.CHAVE_FINREP
+
+INNER JOIN 
+
+	(
+	SELECT DISTINCT 
+		CONCAT (CEMPRESP, CKBALRES, CKCTARES, CKREFRESP) AS CHAVE_MASTER
+		,CONCAT (CEMPRESA, CKBALCAO, CKNUMCTA, COMP_ID_GAR) AS CHAVE_PROCESSO
+	FROM cd_garantias.gt001_trz_rsp_gt
+	WHERE ref_date='${ref_date}'
+	) GT001 
+	
+	    ON FR.CHAVE_MASTER = GT001.CHAVE_MASTER
+
+INNER JOIN
+
+	(
+	SELECT DISTINCT 
+		CONCAT (CEMPRESA, CKBALCAO, CKNUMCTA, COMP_ID_GAR) AS CHAVE_PROCESSO
+		,CONCAT (CEMPBEM, CKBALBEM, CKCTABEM, CKREFBEM) AS CHAVE_BEM
+		,CONCAT ('M','_',CKBALBEM,'_',CKCTABEM,'_',CKREFBEM) AS CHAVE_BEM_PRE
+	FROM cd_garantias.gt012_trz_gt_mob
+	WHERE ref_date='${ref_date}'
+	) GT012 
+	
+	    ON GT001.CHAVE_PROCESSO = GT012.CHAVE_PROCESSO
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+------ 2. Universo de bens imóveis que estão a ser financiados e não são utilizados como garantias (nomeadamente,  os bens exclusivamente financiados) -------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+UNION ALL
+
+SELECT DISTINCT PROCESSO_BI.CHAVE_BEM,PROCESSO_BI.CHAVE_BEM_PRE,'MBI' AS ORIGEM 
+FROM 
+
+	(
+	SELECT 
+		INSTRMNT_ID
+	FROM BU_LOANTAPE_WORK.LT002_INSTRUMENT
+	WHERE ref_date='${ref_date}'
+		AND nome_perimetro= 'Individual Corporativo'
+		AND segmento= 'ESTR' 
+		AND ambito= 'PM'
+		AND entidade = '00100'
+	) LT002	
+	
+INNER JOIN
+
+	(
+	SELECT DISTINCT 
+		CONCAT (CEMPRESA_FR, CBALCAO_FR, CNUMECTA_FR, ZDEPOSIT_FR) AS CHAVE_FINREP
+		,CONCAT (CEMPRESA, CBALCAO, CNUMECTA, ZDEPOSIT) AS CHAVE_MASTER
+	FROM cd_captools.kt_chaves_finrep
+	WHERE ref_date='${ref_date}'
+	) FR
+	
+	    ON LT002.INSTRMNT_ID = FR.CHAVE_FINREP
+	    
+INNER JOIN	
+
+	(
+	SELECT DISTINCT 
+		CONCAT (BANK_ID, BRANCH_CODE, CONTRACT_ID, REFERENCE_CODE) AS CHAVE_RESPONSABILIDADE,
+		CONCAT (PROCESS_BANK_ID, PROCESS_BRANCH_CODE, PROCESS_ACCOUNT_ID, PROCESS_REFERENCE_CODE) AS CHAVE_PROCESSO
+	FROM BU_ESG_WORK.RESPONSIBILITY_PROCESS_REL
+	WHERE DATA_DATE_PART IN (SELECT MAX (DATA_DATE_PART) FROM BU_ESG_WORK.RESPONSIBILITY_PROCESS_REL  WHERE DATA_DATE_PART <= '${ref_date}') 
+	) CREDITO_PROCESSO 
+	
+	    ON CREDITO_PROCESSO.CHAVE_RESPONSABILIDADE = FR.CHAVE_MASTER
+	    
+INNER JOIN
+
+	(
+	SELECT DISTINCT 
+		CONCAT (PROCESS_BANK_ID, PROCESS_BRANCH_CODE, PROCESS_ACCOUNT_ID, PROCESS_REFERENCE_CODE) AS CHAVE_PROCESSO
+		,CONCAT ('I','_',PROPERTY_BRANCH_CODE,'_',PROPERTY_CONTRACT_ID,'_',PROPERTY_REFERENCE_CODE) AS CHAVE_BEM_PRE
+		,CONCAT (PROPERTY_BRANCH_CODE,PROPERTY_CONTRACT_ID,PROPERTY_REFERENCE_CODE) AS CHAVE_BEM
+		,COLLATERAL_PROPERTY_IND AS FLG_COL
+		,FINANCED_PROPERTY_IND AS FLG_FIN
+	FROM BU_ESG_WORK.PROCESS_PROPERTY_REL
+	WHERE DATA_DATE_PART IN 
+            				(
+            				SELECT MAX (DATA_DATE_PART)
+            				FROM BU_ESG_WORK.PROCESS_PROPERTY_REL 
+            				WHERE DATA_DATE_PART <= '${ref_date}'
+            				) 
+	AND (COLLATERAL_PROPERTY_IND = 1 OR FINANCED_PROPERTY_IND = 1)
+	) PROCESSO_BI
+	
+	    ON CREDITO_PROCESSO.CHAVE_PROCESSO = PROCESSO_BI.CHAVE_PROCESSO
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------- 3. Universo de bens móveis --------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+UNION ALL
+
+SELECT DISTINCT 
+	REPLACE(SUBSTR(LT006.PRTCTN_ID,3,LENGTH(LT006.PRTCTN_ID)),'_','') AS CHAVE_BEM
+	,PRTCTN_ID AS CHAVE_BEM_PRE
+	,CONCAT('PM-',SUBSTR(LT006.PRTCTN_ID,1,1)) AS ORIGEM
+FROM
+
+	(
+	SELECT INSTRMNT_ID
+	FROM BU_LOANTAPE_WORK.LT002_INSTRUMENT
+	WHERE ref_date='${ref_date}'
+		AND nome_perimetro= 'Individual Corporativo'
+		AND segmento= 'ESTR' 
+		AND ambito= 'PM'
+		AND entidade = '00100'
+	) LT002	
+	
+INNER JOIN
+
+	(
+	SELECT INSTRMNT_ID, PRTCTN_ID
+	FROM BU_LOANTAPE_WORK.lt006_instr_prot
+	WHERE ref_date='${ref_date}'
+		AND nome_perimetro= 'Individual Corporativo'
+		AND segmento= 'ESTR' 
+		AND ambito= 'PM'
+	) LT006 
+	
+	    ON LT002.INSTRMNT_ID = LT006.INSTRMNT_ID
+
+        ) UNIV_TOTAL
+    		
+    ) UNIV_TRAT
+
+WHERE ROW_1 = 1
+;--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------- Criação da LT004 simulada ---------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+create table bu_captools_work.lt004_gd_mar25_dg as
+
+select distinct
+    COD_SOC,
+    PRTCTN_ID,
+    TYP_PRTCTN,
+    PRTCTN_VL,
+    TYP_VHCL,
+    case
+        when TYP_VHCL not in ('N/A','MISS') and combustivel = 'ELECTRICO' then 'Y'
+        when TYP_VHCL not in ('N/A','MISS') and trim(combustivel) = '' then 'MISS'
+        else 'N'
+    end as FLG_ELCTRC_VHCL,
+    '${ref_date}' as REF_DATE
+from
+
+    (
+    select
+        BASE.CHAVE_BEM_PRE AS PRTCTN_ID,
+            
+        CASE
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB.CHAVE_BEM_PRE IS NOT NULL AND TRIM(GT018_MOB.CGARANT_BEM) IN ('7500','7501','7502','7503','7504','7505','7506','7507','7508','7509','7510','7511','7512','7513','7514','7515') THEN '3'
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB.CHAVE_BEM_PRE IS NOT NULL AND TRIM(GT018_MOB.CGARANT_BEM) IN ('6101','6102') THEN '5'
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB.CHAVE_BEM_PRE IS NOT NULL AND TRIM(GT018_MOB.CGARANT_BEM) IN ('158','182','108','107','159','197','198','106','1B5','164','169','183','1SS','160','309','321','298','105','126','125','199','104','157','1EE','181','120','186','999','101','LSA','190','501','1','111','103','1CC','196','1SW','102','133','345') THEN '7'
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB.CHAVE_BEM_PRE IS NOT NULL AND TRIM(GT018_MOB.CGARANT_BEM) IN ('5101','5102','5103','5104') THEN '8'
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB.CHAVE_BEM_PRE IS NOT NULL AND TRIM(GT018_MOB.CGARANT_BEM) IN ('5203','5204') THEN '9'
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB.CHAVE_BEM_PRE IS NOT NULL AND TRIM(GT018_MOB.CGARANT_BEM) IN ('5000','5201','5202','5302','5205','5206','5207','5207','5209','5210','5211','5300','5212','5213','5214','5303','5301','5215','5216','5217','5218') THEN '10'
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB.CHAVE_BEM_PRE IS NOT NULL AND TRIM(GT018_MOB.CGARANT_BEM) IN ('6401','6402','6403','6404','6405','6406','6407','6408') THEN '12'
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB.CHAVE_BEM_PRE IS NOT NULL AND TRIM(GT018_MOB.CGARANT_BEM) IN ('6201','6202') THEN '15'
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB.CHAVE_BEM_PRE IS NOT NULL AND TRIM(GT018_MOB.CGARANT_BEM) IN ('6300','6501','6502','6503','6504') THEN '18'
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB.CHAVE_BEM_PRE IS NOT NULL AND TRIM(GT018_MOB.CGARANT_BEM) IN ('7100','7101','7102','7103','7104','7105','7106','7107','7110','7111') THEN '51'
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB.CHAVE_BEM_PRE IS NOT NULL AND TRIM(GT018_MOB.CGARANT_BEM) IN ('7108') THEN '52'
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB.CHAVE_BEM_PRE IS NOT NULL AND TRIM(GT018_MOB.CGARANT_BEM) IN ('7109') THEN '53'
+    		WHEN BASE.ORIGEM = 'PM-I' OR BASE.ORIGEM = 'PM-M' OR BASE.ORIGEM = 'PM-F' OR BASE.ORIGEM = 'PM-P' THEN LT_ESTRUT.TYP_PRTCTN
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND TRIM(PROPERTY.property_code) IN ('7500','7501','7502','7503','7504','7505','7506','7507','7508','7509','7510','7511','7512','7513','7514','7515') THEN '3'
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND TRIM(PROPERTY.property_code) IN ('6101','6102') THEN '5'
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND TRIM(PROPERTY.property_code) IN ('158','182','108','107','159','197','198','106','1B5','164','169','183','1SS','160','309','321','298','105','126','125','199','104','157','1EE','181','120','186','999','101','LSA','190','501','1','111','103','1CC','196','1SW','102','133','345') THEN '7'
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND TRIM(PROPERTY.property_code) IN ('5101','5102','5103','5104') THEN '8'
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND TRIM(PROPERTY.property_code) IN ('5203','5204') THEN '9'
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND TRIM(PROPERTY.property_code) IN ('5000','5201','5202','5302','5205','5206','5207','5207','5209','5210','5211','5300','5212','5213','5214','5303','5301','5215','5216','5217','5218') THEN '10'
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND TRIM(PROPERTY.property_code) IN ('6401','6402','6403','6404','6405','6406','6407','6408') THEN '12'
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND TRIM(PROPERTY.property_code) IN ('6201','6202') THEN '15'
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND TRIM(PROPERTY.property_code) IN ('6300','6501','6502','6503','6504') THEN '18'
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND TRIM(PROPERTY.property_code) IN ('7100','7101','7102','7103','7104','7105','7106','7107','7110','7111') THEN '51'
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND TRIM(PROPERTY.property_code) IN ('7108') THEN '52'
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND TRIM(PROPERTY.property_code) IN ('7109') THEN '53'
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND PROPERTY.property_code IS NULL THEN '99999999999'
+    		ELSE 'NOK'
+    	END AS TYP_PRTCTN,
+    	
+    	CASE
+    		WHEN LT_ESTRUT.PRTCTN_ID IS NOT NULL THEN LT_ESTRUT.PRTCTN_VL
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND PROPERTY.LAST_APPRAISAL_AMOUNT IS NOT NULL THEN PROPERTY.LAST_APPRAISAL_AMOUNT
+    		WHEN BASE.ORIGEM = 'MBI' AND PROPERTY.CHAVE_BEM IS NOT NULL AND PROPERTY.LAST_APPRAISAL_AMOUNT IS NULL THEN 99999999999
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB_2.CHAVE_BEM_PRE IS NOT NULL AND GT018_MOB_2.MAVALIAA IS NOT NULL THEN GT018_MOB_2.MAVALIAA -- 25/03: Este universo devia estar em PM, ou seja este case é de forma tática para obter valor no univ de móveis
+    		WHEN BASE.ORIGEM = 'MUG' AND GT018_MOB_2.CHAVE_BEM_PRE IS NOT NULL AND GT018_MOB_2.MAVALIAA IS NULL THEN 99999999999 -- 25/03: Este universo devia estar em PM, ou seja este case é de forma tática para obter valor no univ de móveis
+    	END AS PRTCTN_VL,
+    	
+    	CASE 
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) <> 'M' THEN 'N/A'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NULL THEN 'MISS'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '141' THEN 'VEH01'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '203' THEN 'VEH01'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '241' THEN 'VEH01'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '251' THEN 'VEH01'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '140' THEN 'VEH01'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '149' THEN 'VEH01'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '143' THEN 'VEH03'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '227' THEN 'VEH03'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '142' THEN 'VEH04'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '252' THEN 'VEH04'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '253' THEN 'VEH04'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '254' THEN 'VEH04'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '712' THEN 'VEH04'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '713' THEN 'VEH04'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '144' THEN 'VEH05'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '145' THEN 'VEH05'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '180' THEN 'VEH07'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '181' THEN 'VEH08'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '146' THEN 'VEH09'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '161' THEN 'VEH15'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '162' THEN 'VEH15'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '167' THEN 'VEH15'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '148' THEN 'VEH16'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '171' THEN 'VEH16'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '15'THEN 'VEH18'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '152' THEN 'VEH18'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '211' THEN 'VEH18'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '212' THEN 'VEH18'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '213' THEN 'VEH18'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '214' THEN 'VEH18'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '216' THEN 'VEH18'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '225' THEN 'VEH18'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '14'THEN 'VEH18'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '147' THEN 'VEH19'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '255' THEN 'VEH19'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '256' THEN 'VEH19'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '257' THEN 'VEH19'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '242' THEN 'VEH19'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '243' THEN 'VEH19'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '244' THEN 'VEH19'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '33' THEN 'VEH20'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '210' THEN 'VEH20'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '222' THEN 'VEH20'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '223' THEN 'VEH20'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '224' THEN 'VEH20'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '150' THEN 'VEH21'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '151' THEN 'VEH21'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '215' THEN 'VEH21'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '220' THEN 'VEH21'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '221' THEN 'VEH21'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '226' THEN 'VEH21'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) = '704' THEN 'VEH21'
+    			WHEN SUBSTR(BASE.CHAVE_BEM_PRE,1,1) = 'M' AND GT013.TIPO_EQP IS NOT NULL AND TRIM(GT013.TIPO_EQP) NOT IN ('203','241',
+    			'251','140','149','143','227','142','252','253','254','712','713','144','145','180','181','146','161','162','167'
+    			,'148','171','15','152','211','212','213','214','216','225','14','147','255','256','257','242','243','244','33','210','222','223','224','150','151','215','220','221','226','704') THEN 'N/A'
+    	END AS TYP_VHCL,
+    	
+    	COD_SOC,
+    	
+    	combustivel
+    
+    from
+    
+        (
+        select *
+        from bu_captools_work.lt004_universo_gd_mar25_dg
+        ) BASE
+    
+    left join
+    
+    	(
+    	select distinct concat ('M','_',ckbalbem,'_',ckctabem,'_',ckrefbem) as chave_bem_pre ,cgarant_bem
+    	from cd_garantias.gt018_rateio_aval
+    	where trim(tipologia) = 'MOB' 
+    	and ref_date='${ref_date}'
+    	) gt018_mob
+    	
+    	    on base.chave_bem_pre = gt018_mob.chave_bem_pre
+    
+    left join 
+    
+    	(
+    	SELECT
+    	    CONCAT (PROPERTY_BRANCH_CODE,PROPERTY_CONTRACT_ID,PROPERTY_REFERENCE_CODE) AS CHAVE_BEM,
+    	    LAST_APPRAISAL_AMOUNT,
+    	    property_code
+    	FROM BU_ESG_WORK.PROPERTY
+    	WHERE DATA_DATE_PART IN (SELECT MAX (DATA_DATE_PART)
+    	FROM BU_ESG_WORK.PROPERTY 
+    	WHERE DATA_DATE_PART <='${ref_date}') 
+    	) property
+    	
+    	    on base.chave_bem = property.chave_bem
+    
+    left join 
+    
+    	(
+    	SELECT DISTINCT
+    	    PRTCTN_ID,
+	        PRTCTN_VL,
+	        TYP_PRTCTN,
+	        COD_SOC
+    	FROM  BU_LOANTAPE_WORK.LT004_PROTECTION
+    	WHERE ref_date='${ref_date}'
+    		AND nome_perimetro= 'Individual Corporativo'
+    		AND segmento= 'ESTR'
+    		AND ambito= 'PM'
+    		AND entidade = '00100'
+    	) lt_estrut
+    	
+    	    on base.chave_bem_pre = lt_estrut.prtctn_id
+    
+    LEFT JOIN
+    
+    	(
+    	SELECT*
+    	FROM
+    	
+    		(
+    		SELECT
+    			CASE
+    				WHEN TRIM(tipologia) = 'MOB' THEN CONCAT ('M','_',CKBALBEM,'_',CKCTABEM,'_',CKREFBEM) 
+    				WHEN TRIM(tipologia) = 'PES' THEN CONCAT ('P','_',CKBALBEM,'_',CKCTABEM,'_',CKREFBEM)
+    				WHEN TRIM(tipologia) = 'FIN' THEN CONCAT ('F','_',CKBALBEM,'_',CKCTABEM,'_',CKREFBEM)
+    				WHEN TRIM(tipologia) = 'IMO' THEN CONCAT ('I','_',CKBALBEM,'_',CKCTABEM,'_',CKREFBEM)
+    			END AS CHAVE_BEM_PRE, SUM(MAVALIAA) AS MAVALIAA 
+    		FROM cd_garantias.gt018_rateio_aval
+    		WHERE REF_DATE='${ref_date}'
+    		GROUP BY 1
+    		) GT018_1
+    		
+    	WHERE GT018_1.CHAVE_BEM_PRE IS NOT NULL 
+    	
+    	) GT018_MOB_2
+    	
+    	    ON BASE.CHAVE_BEM_PRE = GT018_MOB_2.CHAVE_BEM_PRE
+    
+    left join 
+    
+        (
+        SELECT
+            concat(cempbem,ckbalbem,ckctabem,ckrefbem) as chave_bem,
+            CONCAT ('M','_',CKBALBEM,'_',CKCTABEM,'_',CKREFBEM) AS CHAVE_BEM_PRE,
+            tipo_eqp,
+            combustivel
+        FROM cd_garantias.gt013_bens_mob
+        WHERE REF_DATE='${ref_date}'
+        ) GT013
+        
+            ON GT013.CHAVE_BEM_PRE = BASE.CHAVE_BEM_PRE
+    
+    ) final
+;
