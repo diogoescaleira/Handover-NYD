@@ -1,0 +1,104 @@
+ with dg as (
+
+select
+    *,
+    case
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is not null then 'comum'
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is null then 'exclusivo GD'
+        when a.instrmnt_id_gd is null and b.instrmnt_id_pilar3 is not null then 'exclusivo PILAR3'
+        else 'ver'
+    end as val_instrmnt_id,
+    
+    case
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is not null and cod_soc_gd = cod_soc_pilar3 then 'ok'
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is not null and cod_soc_gd <> cod_soc_pilar3 then 'nok'
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is null then 'exclusivo GD'
+        when a.instrmnt_id_gd is null and b.instrmnt_id_pilar3 is not null then 'exclusivo PILAR3'
+        else 'ver'
+    end as val_cod_soc,
+    
+    case
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is not null and dt_rfrnc_gd = dt_rfrnc_pilar3 then 'ok'
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is not null and dt_rfrnc_gd <> dt_rfrnc_pilar3 then 'nok'
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is null then 'exclusivo GD'
+        when a.instrmnt_id_gd is null and b.instrmnt_id_pilar3 is not null then 'exclusivo PILAR3'
+        else 'ver'
+    end as val_dt_rfrnc,
+    
+    case
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is not null and sstnbl_ctgry_gd = sstnbl_ctgry_pilar3 then 'ok'
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is not null and sstnbl_ctgry_gd <> sstnbl_ctgry_pilar3 then 'nok'
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is null then 'exclusivo GD'
+        when a.instrmnt_id_gd is null and b.instrmnt_id_pilar3 is not null then 'exclusivo PILAR3'
+        else 'ver'
+    end as val_sstnbl_ctgry_gd,
+
+    case
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is not null and sstnbl_indctr_gd = sstnbl_indctr_pilar3 then 'ok'
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is not null and sstnbl_indctr_gd <> sstnbl_indctr_pilar3 then 'nok'
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is null then 'exclusivo GD'
+        when a.instrmnt_id_gd is null and b.instrmnt_id_pilar3 is not null then 'exclusivo PILAR3'
+        else 'ver'
+    end as val_sstnbl_indctr_gd,
+
+    case
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is not null and prcntg_actvty_gd = prcntg_actvty_pilar3 then 'ok'
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is not null and prcntg_actvty_gd <> prcntg_actvty_pilar3 then 'nok'
+        when a.instrmnt_id_gd is not null and b.instrmnt_id_pilar3 is null then 'exclusivo GD'
+        when a.instrmnt_id_gd is null and b.instrmnt_id_pilar3 is not null then 'exclusivo PILAR3'
+        else 'ver'
+    end as val_prcntg_actvty_gd
+
+from 
+
+    (
+    select distinct
+        instrmnt_id as instrmnt_id_gd,
+        cod_soc as cod_soc_gd,
+        ref_date as dt_rfrnc_gd,
+        sstnbl_ctgry as sstnbl_ctgry_gd,
+        sstnbl_indctr as sstnbl_indctr_gd,
+        prcntg_actvty as prcntg_actvty_gd
+    from bu_loantape_work.lt007_instr_activity
+    where ref_date = '2025-03-31'
+    and ambito = 'GD'
+    and nome_perimetro = 'Individual Corporativo'
+    and segmento = 'ESTR'
+    ) a
+
+full join 
+
+    (
+    select distinct
+        instrmnt_id as instrmnt_id_pilar3,
+        cod_soc as cod_soc_pilar3,
+        ref_date as dt_rfrnc_pilar3,
+        sstnbl_ctgry as sstnbl_ctgry_pilar3,
+        sstnbl_indctr as sstnbl_indctr_pilar3,
+        prcntg_actvty as prcntg_actvty_pilar3
+    from bu_loantape_work.lt007_instr_activity
+    where ref_date = '2025-03-31'
+    and ambito = 'PILAR3'
+    and nome_perimetro = 'Individual Corporativo'
+    and segmento = 'ESTR'
+    ) b
+    
+        on a.instrmnt_id_gd = b.instrmnt_id_pilar3
+)
+
+select 
+    -- instrmnt_id_gd,
+    val_instrmnt_id,
+    val_cod_soc,
+    val_dt_rfrnc,
+    val_sstnbl_ctgry_gd,
+    val_sstnbl_indctr_gd,
+    -- sstnbl_indctr_gd,
+    -- sstnbl_indctr_pilar3
+    val_prcntg_actvty_gd,
+    count(*)
+from dg
+-- where val_sstnbl_indctr_gd = 'nok'
+group by 1,2,3,4,5,6
+order by 7 desc
+;

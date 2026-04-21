@@ -1,0 +1,344 @@
+-- criação do universo com os campos a analisar
+
+create table bu_captools_work.lt002_universo_gd_mar25_dg as
+
+select 
+    --aux
+    aux.*,
+    
+    --lt002
+    CCF,
+    EAD,
+    COD_SOC,
+    IMPRMNT_STTS,
+    PRFRMNG_STTS,
+    GRSS_CRRYNG_AMNT_INSTRMNT,
+    ACCMLTD_CHNGS_FV_CR_INSTRMNT,
+    OFF_BLNC_SHT_AMNT_INSTRMNT,
+    PRVSNS_OFF_BLNC_SHT,
+    RWA,
+    ACCMLTD_IMPRMNT_INSTRMNT,
+    GNS_FNNCL_TRNSCTN_EXCHNG_DFFRNCS,
+    
+    --lt001
+    msaldo_final,
+    
+    -- tabela de março1
+    mar1.c134_extrap_ca_mar,
+    mar1.c134_extrap_lc_mar,
+    mar1.c224_patrm_mar,
+    mar1.c224_extrap_ca_mar,
+    mar1.c224_extrap_lc_mar,
+    mar1.c295_patrm_mar,
+    mar1.c295_extrap_ca_mar,
+    mar1.c295_extrap_lc_mar,
+    mar1.c298_patrm, mar1.c299_patrm, mar1.ac310_patrm,
+    mar1.c457_patrm, mar1.c457_extrap, mar1.c458_patrm, mar1.c458_extrap,
+    mar1.c459_patrm, mar1.c459_extrap, mar1.c460_patrm, mar1.c460_extrap,
+    
+    -- tabela de março2
+    mar2.m009_patrm_mar,
+    mar2.m009_extrap_ca_mar,
+    mar2.m009_serv_fact_mar,
+
+    -- tabela fevereiro1
+    fev1.c134_extrap_ca_fev,
+    fev1.c134_extrap_lc_fev,
+    fev1.c224_patrm_fev,
+    fev1.c224_extrap_ca_fev,
+    fev1.c224_extrap_lc_fev,
+
+    -- tabela fevereiro2
+    fev2.m009_patrm_fev,
+    fev2.m009_extrap_ca_fev,
+    fev2.m009_serv_fact_fev,
+
+    -- tabela janeiro1    
+    jan1.c134_extrap_ca_jan,
+    jan1.c134_extrap_lc_jan,
+    jan1.c224_patrm_jan,
+    jan1.c224_extrap_ca_jan,
+    jan1.c224_extrap_lc_jan,
+    
+    -- tabela janeiro2
+    jan2.m009_patrm_jan,
+    jan2.m009_extrap_ca_jan,
+    jan2.m009_serv_fact_jan,
+    
+    -- tabela dezembro1     
+    dez1.c134_extrap_ca_dez,
+    dez1.c134_extrap_lc_dez,
+    dez1.c224_patrm_dez,
+    dez1.c224_extrap_ca_dez,
+    dez1.c224_extrap_lc_dez
+    
+from
+
+    (
+    select *
+    from BU_CAPTOOLS_WORK.UNIV_LT_GD_PARTE3_AUX9
+    ) aux
+    
+left join 
+
+    (
+    select distinct 
+        instrmnt_id,
+        CCF,
+        EAD,
+        COD_SOC,
+        IMPRMNT_STTS,
+        PRFRMNG_STTS,
+        GRSS_CRRYNG_AMNT_INSTRMNT,
+        ACCMLTD_CHNGS_FV_CR_INSTRMNT,
+        OFF_BLNC_SHT_AMNT_INSTRMNT,
+        PRVSNS_OFF_BLNC_SHT,
+        RWA,
+        ACCMLTD_IMPRMNT_INSTRMNT,
+        GNS_FNNCL_TRNSCTN_EXCHNG_DFFRNCS
+    from bu_loantape_work.lt002_instrument
+    where ref_date = '2025-03-31'
+    and ambito = 'PM'
+    and segmento = 'ESTR'
+    and nome_perimetro = 'Individual Corporativo'
+    and cod_visao = 1
+    ) lt002
+
+        on aux.instrmnt_id = lt002.instrmnt_id
+    
+left join
+
+    (
+    select distinct
+        -- chave finrep
+        cempresa, cbalcao, cnumecta, zdeposit,
+        -- campos
+        msaldo_final
+    from bu_captools_work.lt001_int_mar25_gd_dg
+    ) lt001
+
+        on aux.instrmnt_id_aux = concat(lt001.cempresa, lt001.cbalcao, lt001.cnumecta, lt001.zdeposit)
+
+left join
+
+    (
+    select
+        -- chave mis
+        cempcta, ckbalcao, cknumcta, zdeposit, ckarea, ckmetamis,
+        -- campos
+        c134_extrap_ca as c134_extrap_ca_mar,
+        c134_extrap_lc as c134_extrap_lc_mar,
+        c224_patrm as c224_patrm_mar,
+        c224_extrap_ca as c224_extrap_ca_mar,
+        c224_extrap_lc as c224_extrap_lc_mar,
+        c295_patrm as c295_patrm_mar,
+        c295_extrap_ca as c295_extrap_ca_mar,
+        c295_extrap_lc as c295_extrap_lc_mar,
+        c298_patrm, c299_patrm, ac310_patrm,
+        c457_patrm, c457_extrap, c458_patrm, c458_extrap,
+        c459_patrm, c459_extrap, c460_patrm, c460_extrap
+    from BU_CAPTOOLS_WORK.UNIV_RENTAB_MAR25
+    where ckmetamis not in ('SO0711','SO0721','SO0722')
+    ) mar1
+    
+        on aux.cempcta = mar1.cempcta
+        and aux.ckbalcao = mar1.ckbalcao
+        and aux.cknumcta = mar1.cknumcta
+        and aux.zdeposit_mis = mar1.zdeposit
+        and aux.ckarea = mar1.ckarea
+
+left join
+
+    (
+    select
+        -- chave mis
+        cempcta, ckbalcao, cknumcta, zdeposit, ckarea,
+        -- campos
+        m009_patrm as m009_patrm_mar,
+        m009_extrap_ca as m009_extrap_ca_mar,
+        m009_serv_fact as m009_serv_fact_mar
+    from BU_CAPTOOLS_WORK.UNIV_RENTAB_MAR25
+    where ckmetamis in ('SO0711','SO0721','SO0722')
+    ) mar2
+    
+        on aux.cempcta = mar2.cempcta
+        and aux.ckbalcao = mar2.ckbalcao
+        and aux.cknumcta = mar2.cknumcta
+        and aux.zdeposit_mis = mar2.zdeposit
+        and aux.ckarea = mar2.ckarea
+
+left join
+
+    (
+    select
+        -- chave mis
+        cempcta, ckbalcao, cknumcta, zdeposit, ckarea,
+        -- campos
+        c134_extrap_ca as c134_extrap_ca_fev,
+        c134_extrap_lc as c134_extrap_lc_fev,
+        c224_patrm as c224_patrm_fev,
+        c224_extrap_ca as c224_extrap_ca_fev,
+        c224_extrap_lc as c224_extrap_lc_fev
+    from BU_CAPTOOLS_WORK.UNIV_RENTAB_FEV25
+    where ckmetamis not in ('SO0711','SO0721','SO0722')
+    ) fev1
+    
+        on aux.cempcta = fev1.cempcta
+        and aux.ckbalcao = fev1.ckbalcao
+        and aux.cknumcta = fev1.cknumcta
+        and aux.zdeposit_mis = fev1.zdeposit
+        and aux.ckarea = fev1.ckarea
+
+left join
+
+    (
+    select
+        -- chave mis
+        cempcta, ckbalcao, cknumcta, zdeposit, ckarea,
+        -- campos
+        m009_patrm as m009_patrm_fev,
+        m009_extrap_ca as m009_extrap_ca_fev,
+        m009_serv_fact as m009_serv_fact_fev
+    from BU_CAPTOOLS_WORK.UNIV_RENTAB_FEV25
+    where ckmetamis in ('SO0711','SO0721','SO0722')
+    ) fev2
+    
+        on aux.cempcta = fev2.cempcta
+        and aux.ckbalcao = fev2.ckbalcao
+        and aux.cknumcta = fev2.cknumcta
+        and aux.zdeposit_mis = fev2.zdeposit
+        and aux.ckarea = fev2.ckarea
+
+left join
+
+    (
+    select
+        -- chave mis
+        cempcta, ckbalcao, cknumcta, zdeposit, ckarea,
+        -- campos
+        c134_extrap_ca as c134_extrap_ca_jan,
+        c134_extrap_lc as c134_extrap_lc_jan,
+        c224_patrm as c224_patrm_jan,
+        c224_extrap_ca as c224_extrap_ca_jan,
+        c224_extrap_lc as c224_extrap_lc_jan
+    from BU_CAPTOOLS_WORK.UNIV_RENTAB_JAN25
+    where ckmetamis not in ('SO0711','SO0721','SO0722')
+    ) jan1
+    
+        on aux.cempcta = jan1.cempcta
+        and aux.ckbalcao = jan1.ckbalcao
+        and aux.cknumcta = jan1.cknumcta
+        and aux.zdeposit_mis = jan1.zdeposit
+        and aux.ckarea = jan1.ckarea
+
+left join
+
+    (
+    select
+        -- chave mis
+        cempcta, ckbalcao, cknumcta, zdeposit, ckarea,
+        -- campos
+        m009_patrm as m009_patrm_jan,
+        m009_extrap_ca as m009_extrap_ca_jan,
+        m009_serv_fact as m009_serv_fact_jan
+    from BU_CAPTOOLS_WORK.UNIV_RENTAB_JAN25
+    where ckmetamis in ('SO0711','SO0721','SO0722')
+    ) jan2
+    
+        on aux.cempcta = jan2.cempcta
+        and aux.ckbalcao = jan2.ckbalcao
+        and aux.cknumcta = jan2.cknumcta
+        and aux.zdeposit_mis = jan2.zdeposit
+        and aux.ckarea = jan2.ckarea
+
+left join
+
+    (
+    select
+        -- chave mis
+        cempcta, ckbalcao, cknumcta, zdeposit, ckarea,
+        -- campos
+        c134_extrap_ca as c134_extrap_ca_dez,
+        c134_extrap_lc as c134_extrap_lc_dez,
+        c224_patrm as c224_patrm_dez,
+        c224_extrap_ca as c224_extrap_ca_dez,
+        c224_extrap_lc as c224_extrap_lc_dez
+    from BU_CAPTOOLS_WORK.UNIV_RENTAB_DEZ24
+    where ckmetamis not in ('SO0711','SO0721','SO0722')
+    ) dez1
+    
+        on aux.cempcta = dez1.cempcta
+        and aux.ckbalcao = dez1.ckbalcao
+        and aux.cknumcta = dez1.cknumcta
+        and aux.zdeposit_mis = dez1.zdeposit
+        and aux.ckarea = dez1.ckarea
+;
+
+-- criação do universo com os campos a analisar
+
+create table bu_captools_work.lt002_int_gd_mar25_dg as
+
+select
+    univ, ref_date, ambito, segmento, instrmnt_id_aux, instrmnt_id, lcl_instrmnt_id,
+    cempcta, ckbalcao, cknumcta, zdeposit_mis, ckarea,
+    
+    ACCMLTD_CHNGS_FV_CR_INSTRMNT,
+    ACCMLTD_IMPRMNT_INSTRMNT,
+    ACCNTNG_CLSSFCTN,
+    
+    c295_patrm_mar + ((c224_patrm_dez + c224_patrm_jan + c224_patrm_fev + c224_patrm_mar)/4) as avrg_blnc,
+    
+    case 
+        when c224_extrap_ca_mar = 0 and  c224_extrap_lc_mar = 0 then 0
+        when c224_extrap_ca_mar = 0 and  c224_extrap_lc_mar <> 0 then (c134_extrap_lc_mar + c134_extrap_lc_fev + c134_extrap_lc_jan + c134_extrap_lc_dez)/4
+        when c224_extrap_ca_mar <> 0 and  c224_extrap_lc_mar = 0 then c295_extrap_ca_mar + (c224_extrap_ca_mar + c224_extrap_ca_fev + c224_extrap_ca_jan + c224_extrap_ca_dez)/4 
+            + (c134_extrap_ca_mar + c134_extrap_ca_fev + c134_extrap_ca_jan + c134_extrap_ca_dez)/4
+        else 0
+    end as avrg_blnc_off_blnc,
+    
+    BSNSS_AREA,
+    BSNSS_AREA_CCRR,
+    BSNSS_AREA_DSTNTN,
+    CCF,
+    CNCLLD_INSTRMNT_STTS,
+    COD_SOC,
+    COD_SOC_DSTNTN,
+    COD_SOC_INTRGRP,
+    DFLT_STTS_INSTRMNT,
+    '2025-03-31' as DT_RFRNC,
+    EAD,
+    FLG_INTRBSNSS,
+    GNS_FNNCL_TRNSCTN_EXCHNG_CCRR,
+    GNS_FNNCL_TRNSCTN_EXCHNG_DFFRNCS,
+    (c459_patrm - c460_patrm) as GRSS_CMMSSN_EXPNS,
+    (c459_extrap - c460_extrap) as GRSS_CMMSSN_EXPNS_OFF_BLNC,
+    GRSS_CMMSSN_EXPNS_CCRR,
+    GRSS_CMMSSN_EXPNS_OFF_BLNC_CCRR,
+    (c457_patrm-c458_patrm) as GRSS_CMMSSN_INCM,
+    (c457_extrap-c458_extrap) as GRSS_CMMSSN_INCM_OFF_BLNC,
+    GRSS_CMMSSN_INCM_CCRR,
+    GRSS_CMMSSN_INCM_OFF_BLNC_CCRR,
+    GRSS_CRRYNG_AMNT_INSTRMNT,
+    c299_patrm as GRSS_INTRST_EXPNS,
+    GRSS_INTRST_EXPNS_CCRR,
+    c298_patrm as GRSS_INTRST_INCM,
+    GRSS_INTRST_INCM_CCRR,
+    'por simular IDCMB' as IDCMB,
+    IMPRMNT_STTS,
+    INTRBSNSS_ADJ_COD,
+    'por simular INTRNL_TRNSFR_RT' as INTRNL_TRNSFR_RT,
+    INTRNL_TRNSFR_RT_OFF_BLNC,
+    MNGMNT_PRDCT,
+    (m009_patrm_mar + m009_patrm_fev + m009_patrm_jan + m009_serv_fact_mar + m009_serv_fact_fev + m009_serv_fact_jan) as NT_LN_LSS_PRVSN,
+    (m009_extrap_ca_mar + m009_extrap_ca_fev + m009_extrap_ca_jan) as NT_LN_LSS_PRVSN_OFF_BLNC,
+    NW_BSNSS,
+    OFF_BLNC_SHT_AMNT_INSTRMNT,
+    PRFRMNG_STTS,
+    PRVSNS_OFF_BLNC_SHT,
+    RWA,
+    RWA_OFF_BLNC,
+    SUBPORTFOLIO_ID,
+    TYP_INSTRMNT,
+    TYP_OFF_BLNC_PRDCT
+from bu_captools_work.lt002_universo_gd_mar25_dg
+;
