@@ -1,0 +1,1286 @@
+WITH sim_dim_cliente_base as
+(
+select 
+      base.CMES as CMES_base
+      ,base.CCLIGRUPO as CCLIGRUPO_base
+      ,base.CTIP_CLI as CTIP_CLI_base
+  -- ,base.CTIPO as CTIPO_base
+  -- ,base.CBALCLI as CBALCLI_base
+  -- ,base.CGESTOR as CGESTOR_base
+  -- ,base.SEGMENTO_CORP as SEGMENTO_CORP_base  
+  -- ,base.CCLI_ORIGEM AS CCLI_ORIGEM_base
+  -- ,base.VINCULACAO AS VINCULACAO_BASE
+   ,base.ICLI_ACTIVO AS ICLI_ACTIVO_BASE
+  -- ,base.ISEXO AS ISEXO_BASE
+  -- ,base.PROFISSAO AS PROFISSAO_BASE
+  -- ,base.CHABILIT AS CHABILIT_BASE
+  -- ,base.CNACIONALIDADE AS CNACIONALIDADE_BASE
+  -- ,base.VIDADE_ANOS AS VIDADE_ANOS_BASE
+  -- ,base.CIDADE_CLI_PARTICULAR as CIDADE_CLI_PARTICULAR_BASE
+  -- ,base.I_DO_90D as I_DO_90D_BASE
+  -- ,base.icolaborador as icolaborador_base
+  -- ,base.antiguidade as antiguidade_base
+  -- ,base.distrito as distrito_base 
+  -- ,base.CZONA_MORADA as czona_morada_base
+  -- ,base.CTIER_SELECT_MES_ANT as CTIER_SELECT_MES_ANT_base
+  -- ,base.GPERFIL_DIGITAL_MES_ANT as GPERFIL_DIGITAL_MES_ANT_base
+  ,base.DNOVO_CLIENTE AS DNOVO_CLIENTE_BASE
+  ,base.INOVO_CLIENTE_1TITULAR_DO AS INOVO_CLIENTE_1TITULAR_DO_BASE
+  ,base.INOVO_CLIENTE_3M AS INOVO_CLIENTE_3M_BASE
+  
+  ,sim.*
+  -- ,case when trim(base.CMES) <> trim(sim.CMES) then 1 else 0 end as flag_validacao_CMES
+  -- ,case when (base.CCLIGRUPO) <> (sim.CCLIGRUPO) then 1 else 0 end as flag_validacao_CCLIGRUPO
+  -- ,case when (base.CTIP_CLI) <> (sim.CTIP_CLI) then 1 else 0 end as flag_validacao_CTIP_CLI
+  -- ,case when (base.CTIPO) <> (sim.CTIPO) then 1 else 0 end as flag_validacao_CTIPO
+  -- ,case when (base.CBALCLI) <> (sim.CBALCLI) then 1 else 0 end as flag_validacao_CBALCLI
+  -- ,case when (base.CGESTOR) <> (sim.CGESTOR) then 1 else 0 end as flag_validacao_CGESTOR
+  -- ,case when (base.SEGMENTO_CORP) <> (sim.SEGMENTO_CORP) then 1 else 0 end as flag_validacao_SEGMENTO_CORP
+  -- ,case when (base.CCLI_ORIGEM) <> (sim.CCLI_ORIGEM) then 1 else 0 end as flag_validacao_CCLI_ORIGEM
+  -- ,case when (base.VINCULACAO) <> (sim.VINCULACAO) then 1 else 0 end as flag_validacao_VINCULACAO
+  -- ,case when (base.ICLI_ACTIVO) <> (sim.ICLI_ACTIVO) then 1 else 0 end as flag_validacao_ICLI_ACTIVO
+  -- ,case when (base.ISEXO) <> (sim.ISEXO) then 1 else 0 end as flag_validacao_ISEXO
+  -- ,case when trim(base.PROFISSAO) <> trim(sim.PROFISSAO) then 1 else 0 end as flag_validacao_PROFISSAO
+  -- ,case when (base.CHABILIT) <> (sim.CHABILIT) then 1 else 0 end as flag_validacao_CHABILIT
+  -- ,case when (base.CNACIONALIDADE) <> (sim.CNACIONALIDADE) then 1 else 0 end as flag_validacao_CNACIONALIDADE
+  -- ,case when (base.VIDADE_ANOS) <> (sim.VIDADE_ANOS) then 1 else 0 end as flag_validacao_VIDADE_ANOS
+  -- ,case when (base.CIDADE_CLI_PARTICULAR) <> (sim.CIDADE_CLI_PARTICULAR) then 1 else 0 end as flag_validacao_CIDADE_CLI_PARTICULAR
+  -- ,case when (base.I_DO_90D) <> (sim.I_DO_90D) then 1 else 0 end as flag_validacao_I_DO_90D
+  -- ,case when (base.icolaborador) <> (sim.icolaborador) then 1 else 0 end as flag_validacao_icolaborador
+  -- ,case when (base.antiguidade) <> (sim.antiguidade) then 1 else 0 end as flag_validacao_antiguidade
+  -- ,case when (base.distrito) <> (sim.distrito) then 1 else 0 end as flag_validacao_distrito
+  -- -- ,case when (base.czona_morada) <=> (sim.czona_morada) then 0 else 1 end as flag_validacao_czona_morada
+  -- ,case when (base.CTIER_SELECT_MES_ANT) <=> (sim.CTIER_SELECT_MES_ANT) then 0 else 1 end as flag_validacao_CTIER_SELECT_MES_ANT
+  -- ,case when (base.GPERFIL_DIGITAL_MES_ANT) <=> (sim.GPERFIL_DIGITAL_MES_ANT) then 0 else 1 end as flag_validacao_GPERFIL_DIGITAL_MES_ANT
+  ,case when (base.DNOVO_CLIENTE) <=> (sim.DNOVO_CLIENTE) then 0 else 1 end as flag_validacao_DNOVO_CLIENTE
+  ,case when (base.INOVO_CLIENTE_1TITULAR_DO) <=> (sim.INOVO_CLIENTE_1TITULAR_DO) then 0 else 1 end as flag_validacao_INOVO_CLIENTE_1TITULAR_DO
+  ,case when (base.INOVO_CLIENTE_3M) <=> (sim.INOVO_CLIENTE_3M) then 0 else 1 end as flag_validacao_INOVO_CLIENTE_3M
+from 
+-- 1. OBTER TABELA BASE DE BI  -- DEZ: xxxx -- JAN: xxxx
+  (
+  select *
+  from workbench_aa.bi_dim_cliente
+  where CMES = :cmes 
+  ) base 
+
+-- 2. LJ COM CAMPOS SIMULADOS 
+
+left join 
+      (
+        SELECT	--dateadd( s, -1, dateadd( mm, datediff( t1.CMES, getdate() ), 0 ) ) AS CMES,
+                t1.CMES AS CMES,
+                t1.CCLIENTE,
+                t1.CCLIGRUPO,
+                -- t1.CTIP_CLI,
+                --   /* CTIPO */
+                --     CASE WHEN t1.CTIP_CLI = 'F' 
+                --     THEN t2.CTIPO
+                --   WHEN t1.CTIP_CLI = 'J' 
+                --     THEN t3.CTIPO
+                --     END AS CTIPO,
+                -- t1.CBALCLI,
+                -- t4.CGESTOR_COM as CGESTOR, 
+                -- t1.SEGMENTO_CORP,
+                -- t5.CCLI_ORIGEM,
+                -- t1.VINCULACAO,
+                -- case when t1.VINCULACAO in ('AC','VI','VT','VTP') then 'S' else 'N' end as ICLI_ACTIVO,
+                -- t6.ISEXO,
+                -- t6.CGRUPO_PROF AS PROFISSAO,
+                -- t7.CHABILIT,
+                -- t6.CNACIONALIDADE,
+                -- case when t1.CTIP_CLI='F' then t8.VIDADE_MAX ELSE datediff(YEAR, t6.DNASCIMENTO, date_trunc('month', to_date(t1.CMES, 'yyyyMM'))) END AS VIDADE_ANOS,
+                -- case when t1.CTIP_CLI='F' and t8.VIDADE_MAX IS NULL then ''
+                --      when t1.CTIP_CLI='F' and t8.VIDADE_MAX < 18 then '1'
+                --      when t1.CTIP_CLI='F' and t8.VIDADE_MAX < 35 then '2'
+                --      when t1.CTIP_CLI='F' and t8.VIDADE_MAX < 50 then '3'
+                --      when t1.CTIP_CLI='F' and t8.VIDADE_MAX < 70 then '4'
+                --      when t1.CTIP_CLI='F' and t8.VIDADE_MAX >= 70 then '5'
+                -- end as CIDADE_CLI_PARTICULAR,
+                -- t8.I_DO_90D,
+                -- t8.icolaborador,
+                -- t8.antiguidade,
+                -- case when t9.distrito = 'DESCONHECIDO' then t11.distrito else t9.distrito end as distrito,
+                -- case
+                --     when t9.PAIS <> 'PT' then 7
+                --     when concat(t9.DD,t9.CC) = 101 then 5
+                --     when concat(t9.DD,t9.CC) = 102 then 5
+                --     when concat(t9.DD,t9.CC) = 103 then 5
+                --     when concat(t9.DD,t9.CC) = 104 then 2
+                --     when concat(t9.DD,t9.CC) = 105 then 4
+                --     when concat(t9.DD,t9.CC) = 106 then 5
+                --     when concat(t9.DD,t9.CC) = 107 then 2
+                --     when concat(t9.DD,t9.CC) = 108 then 5
+                --     when concat(t9.DD,t9.CC) = 109 then 2
+                --     when concat(t9.DD,t9.CC) = 110 then 5
+                --     when concat(t9.DD,t9.CC) = 111 then 5
+                --     when concat(t9.DD,t9.CC) = 112 then 5
+                --     when concat(t9.DD,t9.CC) = 113 then 2
+                --     when concat(t9.DD,t9.CC) = 114 then 5
+                --     when concat(t9.DD,t9.CC) = 115 then 5
+                --     when concat(t9.DD,t9.CC) = 116 then 2
+                --     when concat(t9.DD,t9.CC) = 117 then 5
+                --     when concat(t9.DD,t9.CC) = 118 then 5
+                --     when concat(t9.DD,t9.CC) = 119 then 2
+                --     when concat(t9.DD,t9.CC) = 201 then 5
+                --     when concat(t9.DD,t9.CC) = 202 then 5
+                --     when concat(t9.DD,t9.CC) = 203 then 5
+                --     when concat(t9.DD,t9.CC) = 204 then 5
+                --     when concat(t9.DD,t9.CC) = 205 then 4
+                --     when concat(t9.DD,t9.CC) = 206 then 5
+                --     when concat(t9.DD,t9.CC) = 207 then 5
+                --     when concat(t9.DD,t9.CC) = 208 then 5
+                --     when concat(t9.DD,t9.CC) = 209 then 5
+                --     when concat(t9.DD,t9.CC) = 210 then 5
+                --     when concat(t9.DD,t9.CC) = 211 then 5
+                --     when concat(t9.DD,t9.CC) = 212 then 5
+                --     when concat(t9.DD,t9.CC) = 213 then 5
+                --     when concat(t9.DD,t9.CC) = 214 then 5
+                --     when concat(t9.DD,t9.CC) = 301 then 5
+                --     when concat(t9.DD,t9.CC) = 302 then 5
+                --     when concat(t9.DD,t9.CC) = 303 then 4
+                --     when concat(t9.DD,t9.CC) = 304 then 5
+                --     when concat(t9.DD,t9.CC) = 305 then 5
+                --     when concat(t9.DD,t9.CC) = 306 then 5
+                --     when concat(t9.DD,t9.CC) = 307 then 5
+                --     when concat(t9.DD,t9.CC) = 308 then 5
+                --     when concat(t9.DD,t9.CC) = 309 then 5
+                --     when concat(t9.DD,t9.CC) = 310 then 5
+                --     when concat(t9.DD,t9.CC) = 311 then 5
+                --     when concat(t9.DD,t9.CC) = 312 then 5
+                --     when concat(t9.DD,t9.CC) = 313 then 5
+                --     when concat(t9.DD,t9.CC) = 314 then 5
+                --     when concat(t9.DD,t9.CC) = 401 then 5
+                --     when concat(t9.DD,t9.CC) = 402 then 4
+                --     when concat(t9.DD,t9.CC) = 403 then 5
+                --     when concat(t9.DD,t9.CC) = 404 then 5
+                --     when concat(t9.DD,t9.CC) = 405 then 5
+                --     when concat(t9.DD,t9.CC) = 406 then 5
+                --     when concat(t9.DD,t9.CC) = 407 then 5
+                --     when concat(t9.DD,t9.CC) = 408 then 5
+                --     when concat(t9.DD,t9.CC) = 409 then 5
+                --     when concat(t9.DD,t9.CC) = 410 then 5
+                --     when concat(t9.DD,t9.CC) = 411 then 5
+                --     when concat(t9.DD,t9.CC) = 412 then 5
+                --     when concat(t9.DD,t9.CC) = 501 then 5
+                --     when concat(t9.DD,t9.CC) = 502 then 4
+                --     when concat(t9.DD,t9.CC) = 503 then 5
+                --     when concat(t9.DD,t9.CC) = 504 then 5
+                --     when concat(t9.DD,t9.CC) = 505 then 5
+                --     when concat(t9.DD,t9.CC) = 506 then 5
+                --     when concat(t9.DD,t9.CC) = 507 then 5
+                --     when concat(t9.DD,t9.CC) = 508 then 5
+                --     when concat(t9.DD,t9.CC) = 509 then 5
+                --     when concat(t9.DD,t9.CC) = 510 then 5
+                --     when concat(t9.DD,t9.CC) = 511 then 5
+                --     when concat(t9.DD,t9.CC) = 601 then 5
+                --     when concat(t9.DD,t9.CC) = 602 then 5
+                --     when concat(t9.DD,t9.CC) = 603 then 4
+                --     when concat(t9.DD,t9.CC) = 604 then 5
+                --     when concat(t9.DD,t9.CC) = 605 then 5
+                --     when concat(t9.DD,t9.CC) = 606 then 5
+                --     when concat(t9.DD,t9.CC) = 607 then 5
+                --     when concat(t9.DD,t9.CC) = 608 then 5
+                --     when concat(t9.DD,t9.CC) = 609 then 5
+                --     when concat(t9.DD,t9.CC) = 610 then 5
+                --     when concat(t9.DD,t9.CC) = 611 then 5
+                --     when concat(t9.DD,t9.CC) = 612 then 5
+                --     when concat(t9.DD,t9.CC) = 613 then 5
+                --     when concat(t9.DD,t9.CC) = 614 then 5
+                --     when concat(t9.DD,t9.CC) = 615 then 5
+                --     when concat(t9.DD,t9.CC) = 616 then 5
+                --     when concat(t9.DD,t9.CC) = 617 then 5
+                --     when concat(t9.DD,t9.CC) = 701 then 5
+                --     when concat(t9.DD,t9.CC) = 702 then 5
+                --     when concat(t9.DD,t9.CC) = 703 then 5
+                --     when concat(t9.DD,t9.CC) = 704 then 5
+                --     when concat(t9.DD,t9.CC) = 705 then 4
+                --     when concat(t9.DD,t9.CC) = 706 then 5
+                --     when concat(t9.DD,t9.CC) = 707 then 5
+                --     when concat(t9.DD,t9.CC) = 708 then 5
+                --     when concat(t9.DD,t9.CC) = 709 then 5
+                --     when concat(t9.DD,t9.CC) = 710 then 5
+                --     when concat(t9.DD,t9.CC) = 711 then 5
+                --     when concat(t9.DD,t9.CC) = 712 then 5
+                --     when concat(t9.DD,t9.CC) = 713 then 5
+                --     when concat(t9.DD,t9.CC) = 714 then 5
+                --     when concat(t9.DD,t9.CC) = 801 then 5
+                --     when concat(t9.DD,t9.CC) = 802 then 5
+                --     when concat(t9.DD,t9.CC) = 803 then 5
+                --     when concat(t9.DD,t9.CC) = 804 then 5
+                --     when concat(t9.DD,t9.CC) = 805 then 4
+                --     when concat(t9.DD,t9.CC) = 806 then 5
+                --     when concat(t9.DD,t9.CC) = 807 then 5
+                --     when concat(t9.DD,t9.CC) = 808 then 5
+                --     when concat(t9.DD,t9.CC) = 809 then 5
+                --     when concat(t9.DD,t9.CC) = 810 then 5
+                --     when concat(t9.DD,t9.CC) = 811 then 5
+                --     when concat(t9.DD,t9.CC) = 812 then 5
+                --     when concat(t9.DD,t9.CC) = 813 then 5
+                --     when concat(t9.DD,t9.CC) = 814 then 5
+                --     when concat(t9.DD,t9.CC) = 815 then 5
+                --     when concat(t9.DD,t9.CC) = 816 then 5
+                --     when concat(t9.DD,t9.CC) = 901 then 5
+                --     when concat(t9.DD,t9.CC) = 902 then 5
+                --     when concat(t9.DD,t9.CC) = 903 then 5
+                --     when concat(t9.DD,t9.CC) = 904 then 5
+                --     when concat(t9.DD,t9.CC) = 905 then 5
+                --     when concat(t9.DD,t9.CC) = 906 then 5
+                --     when concat(t9.DD,t9.CC) = 907 then 4
+                --     when concat(t9.DD,t9.CC) = 908 then 5
+                --     when concat(t9.DD,t9.CC) = 909 then 5
+                --     when concat(t9.DD,t9.CC) = 910 then 5
+                --     when concat(t9.DD,t9.CC) = 911 then 5
+                --     when concat(t9.DD,t9.CC) = 912 then 5
+                --     when concat(t9.DD,t9.CC) = 913 then 5
+                --     when concat(t9.DD,t9.CC) = 914 then 5
+                --     when concat(t9.DD,t9.CC) = 1001 then 5
+                --     when concat(t9.DD,t9.CC) = 1002 then 5
+                --     when concat(t9.DD,t9.CC) = 1003 then 5
+                --     when concat(t9.DD,t9.CC) = 1004 then 5
+                --     when concat(t9.DD,t9.CC) = 1005 then 5
+                --     when concat(t9.DD,t9.CC) = 1006 then 5
+                --     when concat(t9.DD,t9.CC) = 1007 then 5
+                --     when concat(t9.DD,t9.CC) = 1008 then 5
+                --     when concat(t9.DD,t9.CC) = 1009 then 4
+                --     when concat(t9.DD,t9.CC) = 1010 then 5
+                --     when concat(t9.DD,t9.CC) = 1011 then 5
+                --     when concat(t9.DD,t9.CC) = 1012 then 5
+                --     when concat(t9.DD,t9.CC) = 1013 then 5
+                --     when concat(t9.DD,t9.CC) = 1014 then 5
+                --     when concat(t9.DD,t9.CC) = 1015 then 5
+                --     when concat(t9.DD,t9.CC) = 1016 then 5
+                --     when concat(t9.DD,t9.CC) = 1101 then 5
+                --     when concat(t9.DD,t9.CC) = 1102 then 5
+                --     when concat(t9.DD,t9.CC) = 1103 then 5
+                --     when concat(t9.DD,t9.CC) = 1104 then 5
+                --     when concat(t9.DD,t9.CC) = 1105 then 1
+                --     when concat(t9.DD,t9.CC) = 1106 then 3
+                --     when concat(t9.DD,t9.CC) = 1107 then 1
+                --     when concat(t9.DD,t9.CC) = 1108 then 5
+                --     when concat(t9.DD,t9.CC) = 1109 then 1
+                --     when concat(t9.DD,t9.CC) = 1110 then 1
+                --     when concat(t9.DD,t9.CC) = 1111 then 1
+                --     when concat(t9.DD,t9.CC) = 1112 then 5
+                --     when concat(t9.DD,t9.CC) = 1113 then 5
+                --     when concat(t9.DD,t9.CC) = 1114 then 1
+                --     when concat(t9.DD,t9.CC) = 1115 then 1
+                --     when concat(t9.DD,t9.CC) = 1116 then 1
+                --     when concat(t9.DD,t9.CC) = 1201 then 5
+                --     when concat(t9.DD,t9.CC) = 1202 then 5
+                --     when concat(t9.DD,t9.CC) = 1203 then 5
+                --     when concat(t9.DD,t9.CC) = 1204 then 5
+                --     when concat(t9.DD,t9.CC) = 1205 then 5
+                --     when concat(t9.DD,t9.CC) = 1206 then 5
+                --     when concat(t9.DD,t9.CC) = 1207 then 5
+                --     when concat(t9.DD,t9.CC) = 1208 then 5
+                --     when concat(t9.DD,t9.CC) = 1209 then 5
+                --     when concat(t9.DD,t9.CC) = 1210 then 5
+                --     when concat(t9.DD,t9.CC) = 1211 then 5
+                --     when concat(t9.DD,t9.CC) = 1212 then 5
+                --     when concat(t9.DD,t9.CC) = 1213 then 5
+                --     when concat(t9.DD,t9.CC) = 1214 then 4
+                --     when concat(t9.DD,t9.CC) = 1215 then 5
+                --     when concat(t9.DD,t9.CC) = 1301 then 5
+                --     when concat(t9.DD,t9.CC) = 1302 then 5
+                --     when concat(t9.DD,t9.CC) = 1303 then 5
+                --     when concat(t9.DD,t9.CC) = 1304 then 2
+                --     when concat(t9.DD,t9.CC) = 1305 then 5
+                --     when concat(t9.DD,t9.CC) = 1306 then 2
+                --     when concat(t9.DD,t9.CC) = 1307 then 5
+                --     when concat(t9.DD,t9.CC) = 1308 then 2
+                --     when concat(t9.DD,t9.CC) = 1309 then 5
+                --     when concat(t9.DD,t9.CC) = 1310 then 2
+                --     when concat(t9.DD,t9.CC) = 1311 then 5
+                --     when concat(t9.DD,t9.CC) = 1312 then 3
+                --     when concat(t9.DD,t9.CC) = 1313 then 2
+                --     when concat(t9.DD,t9.CC) = 1314 then 2
+                --     when concat(t9.DD,t9.CC) = 1315 then 2
+                --     when concat(t9.DD,t9.CC) = 1316 then 2
+                --     when concat(t9.DD,t9.CC) = 1317 then 2
+                --     when concat(t9.DD,t9.CC) = 1318 then 2
+                --     when concat(t9.DD,t9.CC) = 1401 then 5
+                --     when concat(t9.DD,t9.CC) = 1402 then 5
+                --     when concat(t9.DD,t9.CC) = 1403 then 5
+                --     when concat(t9.DD,t9.CC) = 1404 then 5
+                --     when concat(t9.DD,t9.CC) = 1405 then 5
+                --     when concat(t9.DD,t9.CC) = 1406 then 5
+                --     when concat(t9.DD,t9.CC) = 1407 then 5
+                --     when concat(t9.DD,t9.CC) = 1408 then 5
+                --     when concat(t9.DD,t9.CC) = 1409 then 5
+                --     when concat(t9.DD,t9.CC) = 1410 then 5
+                --     when concat(t9.DD,t9.CC) = 1411 then 5
+                --     when concat(t9.DD,t9.CC) = 1412 then 5
+                --     when concat(t9.DD,t9.CC) = 1413 then 5
+                --     when concat(t9.DD,t9.CC) = 1414 then 5
+                --     when concat(t9.DD,t9.CC) = 1415 then 5
+                --     when concat(t9.DD,t9.CC) = 1416 then 4
+                --     when concat(t9.DD,t9.CC) = 1417 then 5
+                --     when concat(t9.DD,t9.CC) = 1418 then 5
+                --     when concat(t9.DD,t9.CC) = 1419 then 5
+                --     when concat(t9.DD,t9.CC) = 1420 then 5
+                --     when concat(t9.DD,t9.CC) = 1421 then 5
+                --     when concat(t9.DD,t9.CC) = 1501 then 5
+                --     when concat(t9.DD,t9.CC) = 1502 then 1
+                --     when concat(t9.DD,t9.CC) = 1503 then 1
+                --     when concat(t9.DD,t9.CC) = 1504 then 1
+                --     when concat(t9.DD,t9.CC) = 1505 then 5
+                --     when concat(t9.DD,t9.CC) = 1506 then 1
+                --     when concat(t9.DD,t9.CC) = 1507 then 1
+                --     when concat(t9.DD,t9.CC) = 1508 then 1
+                --     when concat(t9.DD,t9.CC) = 1509 then 5
+                --     when concat(t9.DD,t9.CC) = 1510 then 1
+                --     when concat(t9.DD,t9.CC) = 1511 then 1
+                --     when concat(t9.DD,t9.CC) = 1512 then 1
+                --     when concat(t9.DD,t9.CC) = 1513 then 5
+                --     when concat(t9.DD,t9.CC) = 1601 then 5
+                --     when concat(t9.DD,t9.CC) = 1602 then 5
+                --     when concat(t9.DD,t9.CC) = 1603 then 5
+                --     when concat(t9.DD,t9.CC) = 1604 then 5
+                --     when concat(t9.DD,t9.CC) = 1605 then 5
+                --     when concat(t9.DD,t9.CC) = 1606 then 5
+                --     when concat(t9.DD,t9.CC) = 1607 then 5
+                --     when concat(t9.DD,t9.CC) = 1608 then 5
+                --     when concat(t9.DD,t9.CC) = 1609 then 4
+                --     when concat(t9.DD,t9.CC) = 1610 then 5
+                --     when concat(t9.DD,t9.CC) = 1701 then 5
+                --     when concat(t9.DD,t9.CC) = 1702 then 5
+                --     when concat(t9.DD,t9.CC) = 1703 then 5
+                --     when concat(t9.DD,t9.CC) = 1704 then 5
+                --     when concat(t9.DD,t9.CC) = 1705 then 5
+                --     when concat(t9.DD,t9.CC) = 1706 then 5
+                --     when concat(t9.DD,t9.CC) = 1707 then 5
+                --     when concat(t9.DD,t9.CC) = 1708 then 5
+                --     when concat(t9.DD,t9.CC) = 1709 then 5
+                --     when concat(t9.DD,t9.CC) = 1710 then 5
+                --     when concat(t9.DD,t9.CC) = 1711 then 5
+                --     when concat(t9.DD,t9.CC) = 1712 then 5
+                --     when concat(t9.DD,t9.CC) = 1713 then 5
+                --     when concat(t9.DD,t9.CC) = 1714 then 4
+                --     when concat(t9.DD,t9.CC) = 1801 then 5
+                --     when concat(t9.DD,t9.CC) = 1802 then 5
+                --     when concat(t9.DD,t9.CC) = 1803 then 5
+                --     when concat(t9.DD,t9.CC) = 1804 then 5
+                --     when concat(t9.DD,t9.CC) = 1805 then 5
+                --     when concat(t9.DD,t9.CC) = 1806 then 5
+                --     when concat(t9.DD,t9.CC) = 1807 then 5
+                --     when concat(t9.DD,t9.CC) = 1808 then 5
+                --     when concat(t9.DD,t9.CC) = 1809 then 5
+                --     when concat(t9.DD,t9.CC) = 1810 then 5
+                --     when concat(t9.DD,t9.CC) = 1811 then 5
+                --     when concat(t9.DD,t9.CC) = 1812 then 5
+                --     when concat(t9.DD,t9.CC) = 1813 then 5
+                --     when concat(t9.DD,t9.CC) = 1814 then 5
+                --     when concat(t9.DD,t9.CC) = 1815 then 5
+                --     when concat(t9.DD,t9.CC) = 1816 then 5
+                --     when concat(t9.DD,t9.CC) = 1817 then 5
+                --     when concat(t9.DD,t9.CC) = 1818 then 5
+                --     when concat(t9.DD,t9.CC) = 1819 then 5
+                --     when concat(t9.DD,t9.CC) = 1820 then 5
+                --     when concat(t9.DD,t9.CC) = 1821 then 5
+                --     when concat(t9.DD,t9.CC) = 1822 then 5
+                --     when concat(t9.DD,t9.CC) = 1823 then 4
+                --     when concat(t9.DD,t9.CC) = 1824 then 5
+                --     when concat(t9.DD,t9.CC) = 3101 then 6
+                --     when concat(t9.DD,t9.CC) = 3102 then 6
+                --     when concat(t9.DD,t9.CC) = 3103 then 6
+                --     when concat(t9.DD,t9.CC) = 3104 then 6
+                --     when concat(t9.DD,t9.CC) = 3105 then 6
+                --     when concat(t9.DD,t9.CC) = 3106 then 6
+                --     when concat(t9.DD,t9.CC) = 3107 then 6
+                --     when concat(t9.DD,t9.CC) = 3108 then 6
+                --     when concat(t9.DD,t9.CC) = 3109 then 6
+                --     when concat(t9.DD,t9.CC) = 3110 then 6
+                --     when concat(t9.DD,t9.CC) = 3201 then 6
+                --     when concat(t9.DD,t9.CC) = 4101 then 6
+                --     when concat(t9.DD,t9.CC) = 4201 then 6
+                --     when concat(t9.DD,t9.CC) = 4202 then 6
+                --     when concat(t9.DD,t9.CC) = 4203 then 6
+                --     when concat(t9.DD,t9.CC) = 4204 then 6
+                --     when concat(t9.DD,t9.CC) = 4205 then 6
+                --     when concat(t9.DD,t9.CC) = 4206 then 6
+                --     when concat(t9.DD,t9.CC) = 4301 then 6
+                --     when concat(t9.DD,t9.CC) = 4302 then 6
+                --     when concat(t9.DD,t9.CC) = 4401 then 6
+                --     when concat(t9.DD,t9.CC) = 4501 then 6
+                --     when concat(t9.DD,t9.CC) = 4502 then 6
+                --     when concat(t9.DD,t9.CC) = 4601 then 6
+                --     when concat(t9.DD,t9.CC) = 4602 then 6
+                --     when concat(t9.DD,t9.CC) = 4603 then 6
+                --     when concat(t9.DD,t9.CC) = 4701 then 6
+                --     when concat(t9.DD,t9.CC) = 4801 then 6
+                --     when concat(t9.DD,t9.CC) = 4802 then 6
+                --     when concat(t9.DD,t9.CC) = 4901 then 6
+                --     else 8
+                -- end as CZONA_MORADA,
+                -- t10.HIDDEN_SELECT_TIER AS CTIER_SELECT_MES_ANT,
+                -- t10.TIPO_ATENDIMENTO as GPERFIL_DIGITAL_MES_ANT,
+                t12.DNOVO_CLIENTE,
+                t12.inovo_cliente_1titular_do,
+                case  when t12.DNOVO_CLIENTE is not null and MONTHS_BETWEEN(LAST_DAY(TO_DATE(t1.CMES, 'yyyyMM')), t12.DNOVO_CLIENTE) <= 2 then 'S'
+                      else 'N' end as INOVO_CLIENTE_3M
+            FROM (select * from workbench_aa.bi_base_cliente where CMES = :cmes) t1
+            -- LEFT JOIN (SELECT CMES, CCLIENTE_ESP, CTIPO FROM production.curated_internal_datawarehouse_dmmarketingautomation.matf663_cli_vincul_m WHERE ICLI_SELECIONADO=1 
+            --       AND (CCLIGRUPO <> '0001785966' AND CCLIENTE_ESP <> '5100135104') /*Programa temporário*/) t2
+            -- ON t1.CMES=t2.CMES AND t1.CCLIENTE_ESP=t2.CCLIENTE_ESP
+            -- LEFT JOIN (SELECT CMES, CCLIENTE_ESP, CTIPO FROM production.curated_internal_datawarehouse_dw.dwt1116_vincul_emp WHERE ICLI_SELECIONADO=1) t3
+            -- ON t1.CMES=t3.CMES AND t1.CCLIENTE_ESP=t3.CCLIENTE_ESP
+            -- LEFT JOIN 
+            --   (SELECT	CCLIENTE,
+            --           CGESTOR_COM,
+            --           TIMESTAMP
+            --   FROM (
+            --     SELECT CCLIENTE,
+            --           CGESTOR_COM,
+            --           TIMESTAMP,
+            --           row_number() OVER(PARTITION BY CCLIENTE ORDER BY TIMESTAMP DESC) AS RNk
+            --     FROM production.curated_internal_datawarehouse_dw.dwt176_cliente_marca
+            --     WHERE TIMESTAMP > '2026-01-01' AND TIMESTAMP < '2026-02-05'
+            --   )
+            --   WHERE Rnk = 1) t4 ON t1.CCLIENTE=t4.CCLIENTE 
+            -- LEFT JOIN (
+            --   SELECT CCLIGRUPO,
+            --         CTIP_CLI,
+            --         CMES,
+            --           (case
+            --           when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 1 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=1 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=1 then 'S1'
+            --           when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 1 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=1 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=0 then 'S2'
+            --           when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 1 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=0 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=1 then 'S3'
+            --           when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 1 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=0 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=0 then 'S4'
+            --           when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 0 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=1 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=1 then 'P1'
+            --           when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 0 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=1 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=0 then 'P2'
+            --           when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 0 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=0 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=1 then 'B1'
+            --           end) AS CCLI_ORIGEM
+            --         FROM workbench_aa.bi_BASE_cliente
+            --         where CMES = :cmes 
+            --         GROUP BY CCLIGRUPO,
+            --                 CTIP_CLI,
+            --                 CMES
+            -- ) t5 on t1.CCLIGRUPO=t5.CCLIGRUPO AND t1.CTIP_CLI=t5.ctip_cli
+            -- LEFT JOIN (select * from production.curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part = '2026-02-04') t6 on t1.CCLIENTE=t6.CCLIENTE
+            -- LEFT JOIN (select t1.CCLIGRUPO,
+            --                   MAX(case
+            --                           when t2.CHABILIT in ('001','002','003','004','005','006','007','008','009','010','011','012','013') then t2.CHABILIT
+            --                           when t2.CHABILIT = '#' then '000'
+            --                           when t2.CHABILIT = '*' then '999'
+            --                           else '000'
+            --                       end) as CHABILIT
+            --             from workbench_aa.bi_base_cliente t1
+            --             left join (select * from production.curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part = '2026-02-04') t2
+            --             on t1.CCLIENTE = t2.CCLIENTE
+            --             WHERE t1.CMES = :cmes
+            --             GROUP BY CCLIGRUPO) t7 on t1.CCLIGRUPO=t7.CCLIGRUPO
+            --  left join (select    t1.ccligrupo,
+            --                       max(case when year(t2.DNASCIMENTO) > 1582 then datediff(year, t2.DNASCIMENTO, last_day(to_date(t1.CMES, 'yyyyMM'))) else 0 end) as VIDADE_MAX,
+            --                       min(case when datediff(day, t2.DABERTURA_CLIENTE, last_day(to_date(t1.CMES, 'yyyyMM'))) <=90 then 1 else 0 end) as I_DO_90D,
+            --                       max(FCLIENTE_EMPREGADO) as ICOLABORADOR,
+            --                       max(case when datediff(year, t2.DABERTURA_CLIENTE, last_day(to_date(t1.CMES, 'yyyyMM'))) <= 1 then '1' 
+            --                                when datediff(year, t2.DABERTURA_CLIENTE, last_day(to_date(t1.CMES, 'yyyyMM'))) <= 5 then '2'
+            --                                when datediff(year, t2.DABERTURA_CLIENTE, last_day(to_date(t1.CMES, 'yyyyMM'))) <= 10 then '3'
+            --                                when datediff(year, t2.DABERTURA_CLIENTE, last_day(to_date(t1.CMES, 'yyyyMM'))) <= 20 then '4'
+            --                                else '5'
+            --                                end) as antiguidade
+            --             from workbench_aa.bi_base_cliente t1 
+            --             left join (select * from production.curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part = '2026-02-04') t2
+            --             on t1.CCLIENTE = t2.CCLIENTE
+            --             where CMES = :cmes
+            --             group by t1.CCLIGRUPO) t8 on t1.CCLIGRUPO = t8.CCLIGRUPO
+            --             left join (
+            --               select CCLIGRUPO, MAX(DISTRITO) AS DISTRITO, max(DD) as DD, max(CC) as CC, max(E0710_COD_PAIS) as PAIS FROM (
+            --               select t1.ccligrupo,
+            --                      t5.DD,
+            --                      t5.CC,
+            --                      t4.E0710_COD_PAIS,
+            --                       CASE  WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '01' OR (t5.DD is NULL and t6.DD = '01')) THEN 'AVEIRO'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '03' OR (t5.DD is NULL and t6.DD = '03')) THEN 'BRAGA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '02' OR (t5.DD is NULL and t6.DD = '02')) THEN 'BEJA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '04' OR (t5.DD is NULL and t6.DD = '04')) THEN 'BRAGANCA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '05' OR (t5.DD is NULL and t6.DD = '05')) THEN 'CASTELO BRANCO'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '06' OR (t5.DD is NULL and t6.DD = '06')) THEN 'COIMBRA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '07' OR (t5.DD is NULL and t6.DD = '07')) THEN 'EVORA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '08' OR (t5.DD is NULL and t6.DD = '08')) THEN 'FARO'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '09' OR (t5.DD is NULL and t6.DD = '09')) THEN 'GUARDA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '10' OR (t5.DD is NULL and t6.DD = '10')) THEN 'LEIRIA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '11' OR (t5.DD is NULL and t6.DD = '11')) THEN 'LISBOA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '12' OR (t5.DD is NULL and t6.DD = '12')) THEN 'PORTALEGRE'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '13' OR (t5.DD is NULL and t6.DD = '13'))  THEN 'PORTO'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '14' OR (t5.DD is NULL and t6.DD = '14')) THEN 'SANTAREM'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '15' OR (t5.DD is NULL and t6.DD = '15')) THEN 'SETUBAL'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '16' OR (t5.DD is NULL and t6.DD = '16')) THEN 'VIANA CASTELO'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '17' OR (t5.DD is NULL and t6.DD = '17')) THEN 'VILA REAL'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '18' OR (t5.DD is NULL and t6.DD = '18')) THEN 'VISEU'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '19' OR (t5.DD is NULL and t6.DD = '19')) THEN 'ANGRA HEROISMO'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '20' OR (t5.DD is NULL and t6.DD = '20')) THEN 'HORTA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '21' OR (t5.DD is NULL and t6.DD = '21')) THEN 'PONTA DELGADA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '22' OR (t5.DD is NULL and t6.DD = '22')) THEN 'FUNCHAL'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '31' OR (t5.DD is NULL and t6.DD = '31')) THEN 'ILHA DA MADEIRA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '32' OR (t5.DD is NULL and t6.DD = '32')) THEN 'ILHA DO PORTO SANTO'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '41' OR (t5.DD is NULL and t6.DD = '41')) THEN 'ILHA DE SANTA MARIA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '42' OR (t5.DD is NULL and t6.DD = '42')) THEN 'ILHA DE SAO MIGUEL'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '43' OR (t5.DD is NULL and t6.DD = '43')) THEN 'ILHA TERCEIRA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '44' OR (t5.DD is NULL and t6.DD = '44')) THEN 'ILHA DA GRACIOSA'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '45' OR (t5.DD is NULL and t6.DD = '45')) THEN 'ILHA DE SAO JORGE'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '46' OR (t5.DD is NULL and t6.DD = '46')) THEN 'ILHA DO PICO'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '47' OR (t5.DD is NULL and t6.DD = '47')) THEN 'ILHA DO FAIAL'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '48' OR (t5.DD is NULL and t6.DD = '48')) THEN 'ILHA DAS FLORES'
+            --                             WHEN t4.E0710_COD_PAIS='PT' AND (t5.DD = '49' OR (t5.DD is NULL and t6.DD = '49')) THEN 'ILHA DO CORVO'
+            --                             ELSE 'DESCONHECIDO'
+            --                       END AS DISTRITO
+            --               from (select * from workbench_aa.bi_base_cliente where CMES = :cmes) t1
+            --               left join (select * from production.curated_internal_mainframe_estruturais.tat01_clientes where data_date_part='2026-02-04') t2 on t1.CCLIENTE = t2.ZCLIENTE
+            --               left join (select E0710_TIPO_PER, E0710_COD_PERS, MAX(E0710_NRODOM) AS CMORADA from production.curated_internal_mainframe_clientes.domic_pers_int
+            --                          where data_date_part='2026-02-04'
+            --                          GROUP BY E0710_TIPO_PER, E0710_COD_PERS) t3 on t2.TIPO_PERS = t3.E0710_TIPO_PER AND t2.COD_PERS = t3.E0710_COD_PERS
+            --               left join (select E0710_TIPO_PER, E0710_COD_PERS, E0710_NRODOM, E0710_COD_PAIS, regexp_extract(E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1) AS COD_POSTAL from  production.curated_internal_mainframe_clientes.domic_pers_int where data_date_part='2026-02-04') t4 on  t3.E0710_TIPO_PER = t4.E0710_TIPO_PER AND t3.E0710_COD_PERS = t4.E0710_COD_PERS and t3.CMORADA=t4.E0710_NRODOM
+            --               left join (select distinct DD, CC, CP4, CP3, data_date_part from curated_internal_mainframe_estruturais.interface_moradas_ctt where data_date_part='2026-01-31') t5 on t4.cod_postal = t5.CP4*1000+t5.CP3 
+            --               left join (select distinct DD, CC, CP4, CP3, data_date_part from curated_internal_mainframe_estruturais.interface_moradas_ctt where data_date_part='2026-01-31') t6 on substr(t4.cod_postal,1,4) = t6.CP4 
+            --             )
+            --             GROUP BY CCLIGRUPO) t9 on t1.CCLIGRUPO = t9.CCLIGRUPO
+            --             LEFT JOIN (SELECT * FROM production.workbench_aa.aa_omni_tipoat_all_unique WHERE CMES = :CMES_1) t10 on t1.CCLIGRUPO=t10.CCLIGRUPO
+            --             left join (
+            --               SELECT CCLIGRUPO, MAX(DISTRITO) AS DISTRITO FROM (
+            --                 SELECT CCLIGRUPO, DISTRITO, FILTRO FROM(
+            --               select distinct t1.ccligrupo,
+            --               t1.ccliente,
+            --               --regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1) AS COD_POSTAL_COMP,
+            --               --substr(regexp_extract(t3.E0710_DOM_DESC_TEXT,'(\\d{7})(?!.*\\d)',1),1,4) AS COD_POSTAL,
+            --               --t3.E0710_DOM_DESC_TEXT AS MORADA,
+            --               --t4.DD,
+            --               CASE WHEN t5.E0712_TIPODOM = '01'
+            --               THEN 'S'
+            --               ELSE 'N' END as CMORADA_FISCAL,
+            --               CASE WHEN t5.E0712_TIPODOM = '01' AND t3.E0710_COD_PAIS='PT' THEN 1 --MORADA FISCAL PORTUGUESA
+            --                    WHEN (t5.E0712_TIPODOM <> '01' OR t5.E0712_TIPODOM IS NULL) AND t3.E0710_COD_PAIS='PT' THEN 2 --MORADA FISCAL ESTRANGEIRA: PRIORIZAR PT
+            --               ELSE 3 END AS FILTRO,
+            --               --t3.E0710_NRODOM as CMORADA,
+            --               --SUBSTR(SUBSTR(t4.DD, 1, 2) || SUBSTR(t4.CC, 1, 2) || SUBSTR(t4.FF, 1, 2),1,4) AS CCONCELHO,
+            --               t4.DD AS DD_COD,
+            --               t6.DD as DD_COD_SUBCOD,
+            --               CASE WHEN t4.DD is NULL THEN "ENTROU" END AS TESTE,
+            --               CASE WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '01' OR (t4.DD is NULL and t6.DD = '01')) THEN 'AVEIRO'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '03' OR (t4.DD is NULL and t6.DD = '03')) THEN 'BRAGA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '02' OR (t4.DD is NULL and t6.DD = '02')) THEN 'BEJA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '04' OR (t4.DD is NULL and t6.DD = '04')) THEN 'BRAGANCA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '05' OR (t4.DD is NULL and t6.DD = '05')) THEN 'CASTELO BRANCO'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '06' OR (t4.DD is NULL and t6.DD = '06')) THEN 'COIMBRA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '07' OR (t4.DD is NULL and t6.DD = '07')) THEN 'EVORA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '08' OR (t4.DD is NULL and t6.DD = '08')) THEN 'FARO'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '09' OR (t4.DD is NULL and t6.DD = '09')) THEN 'GUARDA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '10' OR (t4.DD is NULL and t6.DD = '10')) THEN 'LEIRIA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '11' OR (t4.DD is NULL and t6.DD = '11')) THEN 'LISBOA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '12' OR (t4.DD is NULL and t6.DD = '12')) THEN 'PORTALEGRE'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '13' OR (t4.DD is NULL and t6.DD = '13'))  THEN 'PORTO'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '14' OR (t4.DD is NULL and t6.DD = '14')) THEN 'SANTAREM'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '15' OR (t4.DD is NULL and t6.DD = '15')) THEN 'SETUBAL'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '16' OR (t4.DD is NULL and t6.DD = '16')) THEN 'VIANA CASTELO'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '17' OR (t4.DD is NULL and t6.DD = '17')) THEN 'VILA REAL'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '18' OR (t4.DD is NULL and t6.DD = '18')) THEN 'VISEU'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '19' OR (t4.DD is NULL and t6.DD = '19')) THEN 'ANGRA HEROISMO'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '20' OR (t4.DD is NULL and t6.DD = '20')) THEN 'HORTA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '21' OR (t4.DD is NULL and t6.DD = '21')) THEN 'PONTA DELGADA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '22' OR (t4.DD is NULL and t6.DD = '22')) THEN 'FUNCHAL'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '31' OR (t4.DD is NULL and t6.DD = '31')) THEN 'ILHA DA MADEIRA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '32' OR (t4.DD is NULL and t6.DD = '32')) THEN 'ILHA DO PORTO SANTO'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '41' OR (t4.DD is NULL and t6.DD = '41')) THEN 'ILHA DE SANTA MARIA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '42' OR (t4.DD is NULL and t6.DD = '42')) THEN 'ILHA DE SAO MIGUEL'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '43' OR (t4.DD is NULL and t6.DD = '43')) THEN 'ILHA TERCEIRA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '44' OR (t4.DD is NULL and t6.DD = '44')) THEN 'ILHA DA GRACIOSA'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '45' OR (t4.DD is NULL and t6.DD = '45')) THEN 'ILHA DE SAO JORGE'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '46' OR (t4.DD is NULL and t6.DD = '46')) THEN 'ILHA DO PICO'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '47' OR (t4.DD is NULL and t6.DD = '47')) THEN 'ILHA DO FAIAL'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '48' OR (t4.DD is NULL and t6.DD = '48')) THEN 'ILHA DAS FLORES'
+            --                     WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '49' OR (t4.DD is NULL and t6.DD = '49')) THEN 'ILHA DO CORVO'
+            --                     ELSE 'DESCONHECIDO'
+            --               END AS DISTRITO,
+            --               t3.E0710_COD_PAIS
+            --               -- case when t1.CTIP_CLI='F' then t7.nut3_code
+            --               --      when t1.CTIP_CLI='J' then t8.nut3_code end as nut3_code
+            --               FROM (select * from workbench_aa.bi_base_cliente where CMES = :cmes) t1
+            --               left join (select * from production.curated_internal_mainframe_estruturais.tat01_clientes where data_date_part='2026-02-04') t2 on t1.CCLIENTE = t2.ZCLIENTE
+            --               left join (select * from production.curated_internal_mainframe_clientes.domic_pers_int where data_date_part='2026-02-04') t3 on t2.TIPO_PERS = t3.E0710_TIPO_PER AND t2.COD_PERS = t3.E0710_COD_PERS
+            --               LEFT JOIN (select * from production.curated_internal_mainframe_clientes.rel_tip_dom_his where data_date_part='2026-02-04' and E0712_FECH_FIN='9999-12-31') t5
+            --               on t3.E0710_NRODOM = t5.E0712_NRODOM and t3.E0710_TIPO_PER = t5.E0712_TIPO_PER AND t3.E0710_COD_PERS = t5.E0712_COD_PERS
+            --               left join (select distinct DD, CP4, CP3, data_date_part from curated_internal_mainframe_estruturais.interface_moradas_ctt where data_date_part='2026-01-31') t4 on regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1) = t4.CP4*1000+t4.CP3 
+            --               left join (select distinct DD, CP4, CP3, data_date_part from curated_internal_mainframe_estruturais.interface_moradas_ctt where data_date_part='2026-01-31') t6 on substr(regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1),1,4) = t6.CP4 
+            --               left join (select nut3_code, postal_code, party_id from common_parties_individuals.individual_address where data_date_part='2026-02-04') t7 on t1.CCLIENTE=t7.party_id and t1.CTIP_CLI='F' and substr(regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1),1,4)=substr(t7.postal_code,1,4) and substr(regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1),5,7)=substr(t7.postal_code,6,8)
+            --               -- left join (select nut3_code, postal_code, party_id from common_parties_entities.entity_address where data_date_part='2026-02-04') t8 on t1.CCLIENTE=t8.party_id and t1.CTIP_CLI='J' and substr(regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1),1,4)=substr(t8.postal_code,1,4) and substr(regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1),5,7)=substr(t8.postal_code,6,8)
+            --               ORDER BY CCLIGRUPO, DISTRITO DESC
+            --               )
+            --               QUALIFY ROW_NUMBER() OVER (PARTITION BY CCLIGRUPO ORDER BY FILTRO) = 1)
+            --               GROUP BY CCLIGRUPO) t11 on t1.ccligrupo=t11.ccligrupo
+          left join (SELECT   t1.CCLIGRUPO, 
+                              min(CASE WHEN t1.CTIP_CLI='F' AND last_day(to_date(concat(t1.CMES, '01'), 'yyyyMMdd')) >= t12.DINI_RELACAO_TITULARIDADE THEN t12.DINI_RELACAO_TITULARIDADE
+                                       WHEN t1.CTIP_CLI='J' THEN DWT001.DABERTURA_CLIENTE END) AS DNOVO_CLIENTE,
+                              max(CASE WHEN t1.CTIP_CLI='F' and last_day(to_date(concat(t1.CMES, '01'), 'yyyyMMdd')) >= t12.DINI_RELACAO_TITULARIDADE AND DATE_FORMAT(t12.DINI_RELACAO_TITULARIDADE,'yyyyMM')=DATE_FORMAT(t12.DINI_RELACAO_1TITULAR_DO,'yyyyMM') THEN 1
+                                       WHEN t1.CTIP_CLI='F' and last_day(to_date(concat(t1.CMES, '01'), 'yyyyMMdd')) >= t12.DINI_RELACAO_TITULARIDADE THEN 0 END) AS INOVO_CLIENTE_1TITULAR_DO
+                      FROM (select * from workbench_aa.bi_base_cliente where CMES = :cmes) t1 
+                      LEFT JOIN (SELECT * from production.curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part='2026-04-06') DWT001 ON t1.CCLIENTE=DWT001.CCLIENTE
+                      LEFT JOIN (
+                      SELECT CCLIENTE, MIN(DINI_RELACAO_TITULARIDADE) AS DINI_RELACAO_TITULARIDADE, MIN(DINI_RELACAO_1TITULAR_DO) AS DINI_RELACAO_1TITULAR_DO FROM (
+                      SELECT t1.CCLIGRUPO,
+                            t1.CCLIENTE,
+                            t1.CMES,
+                            t12.CCONTA,
+                            t12.CRELACAO_CL_CNT,
+                            t12.DINI_RELACAO,
+                            t14.ICARTAO_PREPAGO,
+                            t14.ICARTAO_EMPRESA,
+                            CASE WHEN t12.CRELACAO_CL_CNT='1' AND t14.ICARTAO_PREPAGO!='S' AND t14.ICARTAO_EMPRESA!='S' THEN t12.DINI_RELACAO END AS DINI_RELACAO_TITULARIDADE,
+                            CASE WHEN t12.CRELACAO_CL_CNT='1' AND t12.CSEQUENCIA_REL='00000' AND t14.IDO='S' AND t14.ICARTAO_PREPAGO!='S' AND t14.ICARTAO_EMPRESA!='S' THEN t12.DINI_RELACAO END AS DINI_RELACAO_1TITULAR_DO,
+                            t15.DABERTURA_CLIENTE
+                      FROM (select * from workbench_aa.bi_base_cliente where CMES = :cmes) t1
+                      LEFT JOIN (select * from production.curated_internal_datawarehouse_dw.dwt002_rl_clcnt where data_date_part='2026-04-06') t12 on t1.CCLIENTE=t12.CCLIENTE 
+                      LEFT JOIN (select * from production.curated_internal_mainframe_emprestimos.gpt21_processos where zversao='999') t13 on t12.CCONTA=TRIM(t13.CKBALCAO)||TRIM(t13.CKNUMCTA)
+                      LEFT JOIN 
+                                ( SELECT t1.CCONTA,
+                                        MAX(case when t2.CSUBPRODUTO like '025%' then 'S' else 'N' end) AS ICARTAO_PREPAGO,
+                                        MAX(case when (t2.CSUBPRODUTO like '010%' or t2.CSUBPRODUTO like '011%') and t1.CSEQUENCIA_REL='00000' and t3.ITIP_CLI='J' then 'S' else 'N' end) AS ICARTAO_EMPRESA,
+                                        MAX(case when t4.CMETAINTERNA='DO' and t4.CFAMILIA='DO' and t4.CTIPO='P' and t4.CPRODMIS not like '025%' then 'S' else 'N' end) AS IDO
+                                  FROM (select CCONTA, CCLIENTE, CSEQUENCIA_REL,CRELACAO_CL_CNT, DINI_RELACAO from production.curated_internal_datawarehouse_dw.dwt002_rl_clcnt where data_date_part='2026-04-06') t1
+                                  INNER JOIN ( 
+                                    SELECT * FROM production.curated_internal_datawarehouse_dw.dwt008_conta_contrato WHERE (DATA_DATE_PART='2026-04-06' OR DATA_DATE_PART='2022-06-27') 
+                                    -- SELECT
+                                    --     CCONTA,
+                                    --     CSUBPRODUTO
+                                    -- FROM production.curated_internal_datawarehouse_dw.dwt008_conta_contrato
+                                    -- -- WHERE CCONTA IN (
+                                    -- --     SELECT DISTINCT CCONTA
+                                    -- --     FROM production.curated_internal_datawarehouse_dw.dwt002_rl_clcnt
+                                    -- --     WHERE data_date_part = '2026-04-07'
+                                    -- -- )
+                                    -- QUALIFY ROW_NUMBER() OVER (
+                                    --     PARTITION BY CCONTA
+                                    --     ORDER BY data_date_part DESC
+                                    -- ) = 1
+                                    ) t2
+                                  ON t1.CCONTA=t2.CCONTA
+                                  INNER JOIN (SELECT CCLIENTE, ITIP_CLI FROM production.curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part='2026-04-06') t3  
+                                  ON t1.CCLIENTE=t3.CCLIENTE
+                                  LEFT JOIN (SELECT * FROM production.curated_internal_datawarehouse_dmmarketingautomation.matd024_produto where data_date_part='2026-04-06') t4
+                                  ON t2.CSUBPRODUTO=t4.CPRODMIS
+                                  GROUP BY t1.CCONTA) t14 on t12.CCONTA=t14.CCONTA
+                      LEFT JOIN (SELECT * FROM production.curated_internal_datawarehouse_dw.dwt001_cliente  where data_date_part='2026-04-06') t15 ON t1.CCLIENTE=t15.CCLIENTE 
+                      WHERE TRIM(t13.CKBALCAO)||TRIM(t13.CKNUMCTA) IS NULL)
+                      GROUP BY CCLIENTE, DABERTURA_CLIENTE
+                      ORDER BY CCLIENTE) t12 on t1.CCLIENTE=t12.CCLIENTE
+                      GROUP BY t1.CCLIGRUPO) t12 on t1.CCLIGRUPO=t12.CCLIGRUPO
+          WHERE t1.ICLI_SELECIONADO=1
+          ORDER BY CCLIGRUPO
+
+      ) sim
+on base.CCLIGRUPO = sim.CCLIGRUPO
+and base.cmes = sim.cmes
+)
+
+select 
+DISTINCT
+ ccligrupo,
+ ccliente,
+--  inovo_cliente_1titular_do,
+--  inovo_cliente_1titular_do_base,
+--  flag_validacao_inovo_cliente_1titular_do,
+DNOVO_CLIENTE,
+ DNOVO_CLIENTE_base,
+ flag_validacao_DNOVO_CLIENTE
+-- count(*)
+from sim_dim_cliente_base 
+-- group by distrito
+-- order by distrito
+WHERE
+-- flag_validacao_INOVO_CLIENTE_1TITULAR_DO = 1 
+-- and 
+--flag_validacao_DNOVO_CLIENTE = 1
+--AND NOT(DNOVO_CLIENTE<DNOVO_CLIENTE_BASE OR dnovo_cliente_base IS NULL)
+-- AND ICLI_ACTIVO_BASE = 1
+--CCLIGRUPO = '0004916745'
+
+
+;
+
+/*TESTES DNOVO_CLIENTE*/
+
+SELECT  t1.CCLIGRUPO, 
+        min(CASE WHEN t1.CTIP_CLI='F' AND last_day(to_date(concat(t1.CMES, '01'), 'yyyyMMdd')) >= t12.DINI_RELACAO_TITULARIDADE THEN t12.DINI_RELACAO_TITULARIDADE
+                  WHEN t1.CTIP_CLI='J' THEN DWT001.DABERTURA_CLIENTE END) AS DNOVO_CLIENTE,
+        max(CASE WHEN t1.CTIP_CLI='F' and last_day(to_date(concat(t1.CMES, '01'), 'yyyyMMdd')) >= t12.DINI_RELACAO_TITULARIDADE AND DATE_FORMAT(t12.DINI_RELACAO_TITULARIDADE,'yyyyMM')=DATE_FORMAT(t12.DINI_RELACAO_1TITULAR_DO,'yyyyMM') THEN 1
+                  WHEN t1.CTIP_CLI='F' and last_day(to_date(concat(t1.CMES, '01'), 'yyyyMMdd')) >= t12.DINI_RELACAO_TITULARIDADE THEN 0 END) AS INOVO_CLIENTE_1TITULAR_DO
+  FROM (select * from workbench_aa.bi_base_cliente where CMES = :cmes) t1 
+  LEFT JOIN (SELECT * from production.curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part='2026-04-06') DWT001 ON t1.CCLIENTE=DWT001.CCLIENTE
+  LEFT JOIN (
+  SELECT CCLIENTE, MIN(DINI_RELACAO_TITULARIDADE) AS DINI_RELACAO_TITULARIDADE, MIN(DINI_RELACAO_1TITULAR_DO) AS DINI_RELACAO_1TITULAR_DO FROM (
+  SELECT t1.CCLIGRUPO,
+      t1.CCLIENTE,
+      t1.CMES,
+      t12.CCONTA,
+      t12.CRELACAO_CL_CNT,
+      t12.DINI_RELACAO,
+      t14.ICARTAO_PREPAGO,
+      t14.ICARTAO_EMPRESA,
+      t14.IDO,
+      t12.CSEQUENCIA_REL,
+      CASE WHEN t12.CRELACAO_CL_CNT='1' AND t14.ICARTAO_PREPAGO!='S' AND t14.ICARTAO_EMPRESA!='S' THEN t12.DINI_RELACAO END AS DINI_RELACAO_TITULARIDADE,
+      CASE WHEN t12.CRELACAO_CL_CNT='1' AND t12.CSEQUENCIA_REL='00000' AND t14.IDO='S' AND t14.ICARTAO_PREPAGO!='S' AND t14.ICARTAO_EMPRESA!='S' THEN t12.DINI_RELACAO END AS DINI_RELACAO_1TITULAR_DO,
+      t15.DABERTURA_CLIENTE
+  FROM (select * from workbench_aa.bi_base_cliente where CMES = :cmes) t1
+  LEFT JOIN (select * from production.curated_internal_datawarehouse_dw.dwt002_rl_clcnt where data_date_part='2026-04-06') t12 on t1.CCLIENTE=t12.CCLIENTE 
+  LEFT JOIN (select * from production.curated_internal_mainframe_emprestimos.gpt21_processos where zversao='999') t13 on t12.CCONTA=TRIM(t13.CKBALCAO)||TRIM(t13.CKNUMCTA)
+  LEFT JOIN 
+          ( SELECT t1.CCONTA,
+                  MAX(case when t2.CSUBPRODUTO like '025%' then 'S' else 'N' end) AS ICARTAO_PREPAGO,
+                  MAX(case when (t2.CSUBPRODUTO like '010%' or t2.CSUBPRODUTO like '011%') and t1.CSEQUENCIA_REL='00000' and t3.ITIP_CLI='J' then 'S' else 'N' end) AS ICARTAO_EMPRESA,
+                  MAX(case when t4.CMETAINTERNA='DO' and t4.CFAMILIA='DO' and t4.CTIPO='P' and t4.CPRODMIS not like '025%' then 'S' else 'N' end) AS IDO
+            FROM (select CCONTA, CCLIENTE, CSEQUENCIA_REL,CRELACAO_CL_CNT, DINI_RELACAO from production.curated_internal_datawarehouse_dw.dwt002_rl_clcnt where data_date_part='2026-04-06') t1
+            INNER JOIN ( 
+              SELECT * FROM production.curated_internal_datawarehouse_dw.dwt008_conta_contrato WHERE DATA_DATE_PART='2026-04-06' OR DATA_DATE_PART='2022-06-27'   
+              -- SELECT
+              --     CCONTA,
+              --     CSUBPRODUTO
+              -- FROM production.curated_internal_datawarehouse_dw.dwt008_conta_contrato
+              -- -- WHERE CCONTA IN (
+              -- --     SELECT DISTINCT CCONTA
+              -- --     FROM production.curated_internal_datawarehouse_dw.dwt002_rl_clcnt
+              -- --     WHERE data_date_part = '2026-04-07'
+              -- -- )
+              -- QUALIFY ROW_NUMBER() OVER (
+              --     PARTITION BY CCONTA
+              --     ORDER BY data_date_part DESC
+              -- ) = 1
+              ) t2
+            ON t1.CCONTA=t2.CCONTA
+            INNER JOIN (SELECT CCLIENTE, ITIP_CLI FROM production.curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part='2026-04-06') t3  
+            ON t1.CCLIENTE=t3.CCLIENTE
+            LEFT JOIN (SELECT * FROM production.curated_internal_datawarehouse_dmmarketingautomation.matd024_produto where data_date_part='2026-04-06') t4
+            ON t2.CSUBPRODUTO=t4.CPRODMIS
+            GROUP BY t1.CCONTA) t14 on t12.CCONTA=t14.CCONTA
+  LEFT JOIN (SELECT * FROM production.curated_internal_datawarehouse_dw.dwt001_cliente  where data_date_part='2026-04-07') t15 ON t1.CCLIENTE=t15.CCLIENTE 
+  WHERE TRIM(t13.CKBALCAO)||TRIM(t13.CKNUMCTA) IS NULL)
+  GROUP BY CCLIENTE, DABERTURA_CLIENTE
+  ORDER BY CCLIENTE) t12 on t1.CCLIENTE=t12.CCLIENTE
+  GROUP BY t1.CCLIGRUPO
+  HAVING CCLIGRUPO='0004916745';
+
+    /*Físico ou jurídico?*/
+    SELECT CCLIGRUPO, CCLIENTE, CTIP_CLI, ICLI_SELECIONADO FROM workbench_aa.bi_base_cliente WHERE CMES=:cmes AND CCLIGRUPO='0003200511';
+
+    /*Identificação da conta*/
+
+SELECT t1.CCLIGRUPO,
+      t1.CCLIENTE,
+      t1.CMES,
+      t12.CCONTA,
+      t12.CRELACAO_CL_CNT,
+      t12.DINI_RELACAO,
+      t14.ICARTAO_PREPAGO,
+      t14.ICARTAO_EMPRESA,
+      t14.IDO,
+      t12.CSEQUENCIA_REL,
+      CASE WHEN t12.CRELACAO_CL_CNT='1' AND t14.ICARTAO_PREPAGO!='S' AND t14.ICARTAO_EMPRESA!='S' THEN t12.DINI_RELACAO END AS DINI_RELACAO_TITULARIDADE,
+      CASE WHEN t12.CRELACAO_CL_CNT='1' AND t12.CSEQUENCIA_REL='00000' AND t14.IDO='S' AND t14.ICARTAO_PREPAGO!='S' AND t14.ICARTAO_EMPRESA!='S' THEN t12.DINI_RELACAO END AS DINI_RELACAO_1TITULAR_DO,
+      t15.DABERTURA_CLIENTE
+FROM (select * from workbench_aa.bi_base_cliente where CMES = :cmes) t1
+LEFT JOIN (select * from production.curated_internal_datawarehouse_dw.dwt002_rl_clcnt where data_date_part='2026-04-07') t12 on t1.CCLIENTE=t12.CCLIENTE 
+LEFT JOIN (select * from production.curated_internal_mainframe_emprestimos.gpt21_processos where zversao='999') t13 on t12.CCONTA=TRIM(t13.CKBALCAO)||TRIM(t13.CKNUMCTA)
+LEFT JOIN 
+          ( SELECT t1.CCONTA,
+                  MAX(case when t2.CSUBPRODUTO like '025%' then 'S' else 'N' end) AS ICARTAO_PREPAGO,
+                  MAX(case when (t2.CSUBPRODUTO like '010%' or t2.CSUBPRODUTO like '011%') and t1.CSEQUENCIA_REL='00000' and t3.ITIP_CLI='J' then 'S' else 'N' end) AS ICARTAO_EMPRESA,
+                  MAX(case when t4.CMETAINTERNA='DO' and t4.CFAMILIA='DO' and t4.CTIPO='P' and t4.CPRODMIS not like '025%' then 'S' else 'N' end) AS IDO
+            FROM (select CCONTA, CCLIENTE, CSEQUENCIA_REL,CRELACAO_CL_CNT, DINI_RELACAO from production.curated_internal_datawarehouse_dw.dwt002_rl_clcnt where data_date_part='2026-04-07') t1
+            INNER JOIN ( 
+              SELECT * FROM production.curated_internal_datawarehouse_dw.dwt008_conta_contrato WHERE DATA_DATE_PART='2026-04-07' OR DATA_DATE_PART='2022-06-27'   
+              -- SELECT
+              --     CCONTA,
+              --     CSUBPRODUTO
+              -- FROM production.curated_internal_datawarehouse_dw.dwt008_conta_contrato
+              -- -- WHERE CCONTA IN (
+              -- --     SELECT DISTINCT CCONTA
+              -- --     FROM production.curated_internal_datawarehouse_dw.dwt002_rl_clcnt
+              -- --     WHERE data_date_part = '2026-04-07'
+              -- -- )
+              -- QUALIFY ROW_NUMBER() OVER (
+              --     PARTITION BY CCONTA
+              --     ORDER BY data_date_part DESC
+              -- ) = 1
+              ) t2
+            ON t1.CCONTA=t2.CCONTA
+            INNER JOIN (SELECT CCLIENTE, ITIP_CLI FROM production.curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part='2026-04-07') t3  
+            ON t1.CCLIENTE=t3.CCLIENTE
+            LEFT JOIN (SELECT * FROM production.curated_internal_datawarehouse_dmmarketingautomation.matd024_produto where data_date_part='2026-04-07') t4
+            ON t2.CSUBPRODUTO=t4.CPRODMIS
+            GROUP BY t1.CCONTA) t14 on t12.CCONTA=t14.CCONTA
+LEFT JOIN (SELECT * FROM production.curated_internal_datawarehouse_dw.dwt001_cliente  where data_date_part='2026-04-07') t15 ON t1.CCLIENTE=t15.CCLIENTE 
+WHERE TRIM(t13.CKBALCAO)||TRIM(t13.CKNUMCTA) IS NULL and CCLIGRUPO='0004916745';
+
+SELECT CCLIENTE, MIN(DINI_RELACAO_TITULARIDADE) AS DINI_RELACAO_TITULARIDADE, MIN(DINI_RELACAO_1TITULAR_DO) AS DINI_RELACAO_1TITULAR_DO FROM (
+  SELECT t1.CCLIGRUPO,
+      t1.CCLIENTE,
+      t1.CMES,
+      t12.CCONTA,
+      t12.CRELACAO_CL_CNT,
+      t12.DINI_RELACAO,
+      t14.ICARTAO_PREPAGO,
+      t14.ICARTAO_EMPRESA,
+      t14.IDO,
+      t12.CSEQUENCIA_REL,
+      CASE WHEN t12.CRELACAO_CL_CNT='1' AND t14.ICARTAO_PREPAGO!='S' AND t14.ICARTAO_EMPRESA!='S' THEN t12.DINI_RELACAO END AS DINI_RELACAO_TITULARIDADE,
+      CASE WHEN t12.CRELACAO_CL_CNT='1' AND t12.CSEQUENCIA_REL='00000' AND t14.IDO='S' AND t14.ICARTAO_PREPAGO!='S' AND t14.ICARTAO_EMPRESA!='S' THEN t12.DINI_RELACAO END AS DINI_RELACAO_1TITULAR_DO,
+      t15.DABERTURA_CLIENTE
+  FROM (select * from workbench_aa.bi_base_cliente where CMES = :cmes) t1
+  LEFT JOIN (select * from production.curated_internal_datawarehouse_dw.dwt002_rl_clcnt where data_date_part='2026-04-07') t12 on t1.CCLIENTE=t12.CCLIENTE 
+  LEFT JOIN (select * from production.curated_internal_mainframe_emprestimos.gpt21_processos where zversao='999') t13 on t12.CCONTA=TRIM(t13.CKBALCAO)||TRIM(t13.CKNUMCTA)
+  LEFT JOIN 
+          ( SELECT t1.CCONTA,
+                  MAX(case when t2.CSUBPRODUTO like '025%' then 'S' else 'N' end) AS ICARTAO_PREPAGO,
+                  MAX(case when (t2.CSUBPRODUTO like '010%' or t2.CSUBPRODUTO like '011%') and t1.CSEQUENCIA_REL='00000' and t3.ITIP_CLI='J' then 'S' else 'N' end) AS ICARTAO_EMPRESA,
+                  MAX(case when t4.CMETAINTERNA='DO' and t4.CFAMILIA='DO' and t4.CTIPO='P' and t4.CPRODMIS not like '025%' then 'S' else 'N' end) AS IDO
+            FROM (select CCONTA, CCLIENTE, CSEQUENCIA_REL,CRELACAO_CL_CNT, DINI_RELACAO from production.curated_internal_datawarehouse_dw.dwt002_rl_clcnt where data_date_part='2026-04-07') t1
+            INNER JOIN ( 
+              SELECT * FROM production.curated_internal_datawarehouse_dw.dwt008_conta_contrato WHERE (DATA_DATE_PART='2026-04-07' OR DATA_DATE_PART='2022-06-27') AND TIMESTAMP  
+              -- SELECT
+              --     CCONTA,
+              --     CSUBPRODUTO
+              -- FROM production.curated_internal_datawarehouse_dw.dwt008_conta_contrato
+              -- -- WHERE CCONTA IN (
+              -- --     SELECT DISTINCT CCONTA
+              -- --     FROM production.curated_internal_datawarehouse_dw.dwt002_rl_clcnt
+              -- --     WHERE data_date_part = '2026-04-07'
+              -- -- )
+              -- QUALIFY ROW_NUMBER() OVER (
+              --     PARTITION BY CCONTA
+              --     ORDER BY data_date_part DESC
+              -- ) = 1
+              ) t2
+            ON t1.CCONTA=t2.CCONTA
+            INNER JOIN (SELECT CCLIENTE, ITIP_CLI FROM production.curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part='2026-04-07') t3  
+            ON t1.CCLIENTE=t3.CCLIENTE
+            LEFT JOIN (SELECT * FROM production.curated_internal_datawarehouse_dmmarketingautomation.matd024_produto where data_date_part='2026-04-07') t4
+            ON t2.CSUBPRODUTO=t4.CPRODMIS
+            GROUP BY t1.CCONTA) t14 on t12.CCONTA=t14.CCONTA
+  LEFT JOIN (SELECT * FROM production.curated_internal_datawarehouse_dw.dwt001_cliente  where data_date_part='2026-04-07') t15 ON t1.CCLIENTE=t15.CCLIENTE 
+  WHERE TRIM(t13.CKBALCAO)||TRIM(t13.CKNUMCTA) IS NULL)
+  GROUP BY CCLIENTE, DABERTURA_CLIENTE
+  HAVING CCLIENTE IN ('8042675500', '5100171994')
+  ORDER BY CCLIENTE;
+
+
+
+    /*DWT008*/
+    SELECT DISTINCT TIMESTAMP FROM production.curated_internal_datawarehouse_dw.dwt008_conta_contrato ORDER BY TIMESTAMP;
+
+    /*DWT002*/
+    SELECT CCLIENTE, CCONTA, DINI_RELACAO
+    FROM production.curated_internal_datawarehouse_dw.dwt002_rl_clcnt
+    WHERE CCLIENTE='8006145992' AND DATA_DATE_PART='2026-04-06'
+    ORDER BY DINI_RELACAO;
+
+/*SIMUL IENI*/
+
+SELECT
+ --COUNT(*)
+ DISTINCT 
+-- t1.CCLIGRUPO, 
+t1.CCLIENTE
+, t1.CTIP_CLI, t3.COD_PERS, CONCAT(t1.CTIP_CLI, LPAD(t3.COD_PERS, 9, '0')) AS CODPERSONA, t2.IENI as IENI_BASE, t4.DIMENSAO_ENI,
+        CASE WHEN t4.DIMENSAO_ENI IS NOT NULL THEN 1 ELSE 0 END AS IENI_VAL,
+        CASE WHEN (CASE WHEN t4.DIMENSAO_ENI IS NOT NULL THEN 1 ELSE 0 END) = t2.IENI THEN 0 ELSE 1 END AS flag_validacao_IENI
+FROM (
+SELECT  CCLIGRUPO, CCLIENTE, CTIP_CLI FROM production.workbench_aa.bi_base_cliente WHERE cmes=:cmes) t1
+LEFT JOIN (SELECT  CCLIGRUPO, IENI FROM production.workbench_aa.bi_dim_cliente WHERE cmes=:cmes) t2
+on t1.ccligrupo=t2.ccligrupo
+LEFT JOIN (select zcliente,COD_PERS from curated_internal_mainframe_estruturais.tat01_clientes where DATA_DATE_PART = '2026-04-07') t3
+on t1.CCLIENTE=t3.ZCLIENTE
+LEFT JOIN 
+ (
+WITH tipo_subtipo AS (
+  SELECT
+    tipo.O3645_CODTIP,
+    tipo.O3645_DESTIP,
+    subtipo.O3646_CODSTIP,
+    subtipo.O3646_DESSTIP
+  FROM
+    (select * from curated_internal_mainframe_clientes.mc_tipo where data_date_part='2026-04-07')  AS tipo
+  LEFT JOIN
+    (
+    SELECT
+      O3646_CODTIP,
+      O3646_CODSTIP,
+      O3646_DESSTIP,
+      data_date_part
+    FROM
+      curated_internal_mainframe_clientes.mc_sub_tipo
+    WHERE
+      data_date_part = '2026-04-07'
+    ) AS subtipo
+    ON subtipo.O3646_CODTIP = tipo.O3645_CODTIP
+  WHERE
+   -- tipo.data_date_part = (SELECT max(data_date_part) FROM curated_internal_mainframe_clientes.mc_tipo)
+    --AND
+     tipo.O3645_CODTIP IN ('101', '102', '105', '108', '114', '202', '211', '214')
+)
+ 
+SELECT
+  date_format(data_date_part, 'yyyyMM') as CMES,
+  CPERSONA,
+  first(SEGMENTO, true) AS SEGMENTO,
+  first(VINCULACAO, true) AS VINCULACAO,
+  first(DIMENSAO_ENI, true) AS DIMENSAO_ENI,
+  first(DB1B, true) as DB1B,
+  first(UNIVERSIDADES, true) as UNIVERSIDADES
+FROM (
+  SELECT
+    mccliente.CPERSONA,
+    CASE
+      WHEN tipo_subtipo.O3645_CODTIP = '101' THEN tipo_subtipo.O3646_DESSTIP
+      WHEN tipo_subtipo.O3645_CODTIP = '202' THEN tipo_subtipo.O3646_DESSTIP
+      ELSE NULL
+    END AS SEGMENTO,
+    CASE
+      WHEN tipo_subtipo.O3645_CODTIP = '105' THEN tipo_subtipo.O3646_DESSTIP
+      WHEN tipo_subtipo.O3645_CODTIP = '211' THEN tipo_subtipo.O3646_DESSTIP
+      ELSE NULL
+    END AS VINCULACAO,
+    CASE
+      WHEN tipo_subtipo.O3645_CODTIP = '108' THEN tipo_subtipo.O3646_DESSTIP
+     -- WHEN tipo_subtipo.O3645_CODTIP = '101' AND tipo_subtipo.O3646_CODSTIP = '1A2' THEN tipo_subtipo.O3646_DESSTIP /*ACRESCENTADO EF*/
+      ELSE NULL
+    END AS DIMENSAO_ENI,
+    CASE
+      WHEN tipo_subtipo.O3645_CODTIP = '102' THEN tipo_subtipo.O3646_DESSTIP
+      ELSE NULL
+    END AS UNIVERSIDADES,
+    CASE
+      WHEN tipo_subtipo.O3645_CODTIP = '114' THEN tipo_subtipo.O3646_DESSTIP
+      WHEN tipo_subtipo.O3645_CODTIP = '214' THEN tipo_subtipo.O3646_DESSTIP
+      ELSE NULL
+    END AS DB1B,
+    mccliente.data_date_part
+  FROM (
+    SELECT
+      CONCAT(mccli.O3647_TIPOPERS, LPAD(mccli.O3647_CODPERS, 9, '0')) AS CPERSONA,
+      mccli.O3647_CODTIP,
+      mccli.O3647_CODSTIP,
+      mccli.data_date_part
+    FROM
+      curated_internal_mainframe_clientes.mc_cliente AS mccli
+    WHERE
+      mccli.data_date_part ='2026-04-07'
+      --AND mccli.data_date_part >= '2026-01-01' -- ALTERAR CONDICAO DE ACORDO COM O PRETENDIDO
+  ) mccliente
+  LEFT JOIN tipo_subtipo
+    ON tipo_subtipo.O3645_CODTIP = mccliente.O3647_CODTIP
+    AND tipo_subtipo.O3646_CODSTIP = mccliente.O3647_CODSTIP
+)
+GROUP BY ALL) t4
+ON CONCAT(t1.CTIP_CLI, LPAD(t3.COD_PERS, 9, '0'))=t4.CPERSONA
+WHERE CASE WHEN (CASE WHEN t4.DIMENSAO_ENI IS NOT NULL THEN 1 ELSE 0 END) = t2.IENI THEN 0 ELSE 1 END=1;
+
+
+
+    SELECT
+      CONCAT(mccli.O3647_TIPOPERS, LPAD(mccli.O3647_CODPERS, 9, '0')) AS CPERSONA,
+      mccli.O3647_CODTIP,
+      mccli.O3647_CODSTIP,
+      mccli.data_date_part
+    FROM
+      curated_internal_mainframe_clientes.mc_cliente AS mccli
+    WHERE
+      mccli.data_date_part ='2026-04-07'
+    --  O3647_CODSTIP = '1A2' AND
+    --   O3647_CODTIP='101'
+      AND 
+      CONCAT(mccli.O3647_TIPOPERS, LPAD(mccli.O3647_CODPERS, 9, '0'))='F007777177';
+
+
+  SELECT
+    tipo.O3645_CODTIP,
+    tipo.O3645_DESTIP,
+    subtipo.O3646_CODSTIP,
+    subtipo.O3646_DESSTIP
+  FROM
+    (select * from curated_internal_mainframe_clientes.mc_tipo where data_date_part='2026-04-07')  AS tipo
+  LEFT JOIN
+    (
+    SELECT
+      O3646_CODTIP,
+      O3646_CODSTIP,
+      O3646_DESSTIP,
+      data_date_part
+    FROM
+      curated_internal_mainframe_clientes.mc_sub_tipo
+    WHERE
+      data_date_part = '2026-04-07'
+    ) AS subtipo
+    ON subtipo.O3646_CODTIP = tipo.O3645_CODTIP
+  --WHERE
+   -- tipo.data_date_part = (SELECT max(data_date_part) FROM curated_internal_mainframe_clientes.mc_tipo)
+    --AND
+     --tipo.O3645_CODTIP IN ('101', '102', '105', '108', '114', '202', '211', '214')
+
+--having CPERSONA=CONCAT('F', LPAD(18, 9, '0'));
+
+
+WITH tipo_subtipo AS (
+  SELECT
+    tipo.O3645_CODTIP,
+    tipo.O3645_DESTIP,
+    subtipo.O3646_CODSTIP,
+    subtipo.O3646_DESSTIP
+  FROM
+    (select * from curated_internal_mainframe_clientes.mc_tipo where data_date_part='2026-04-07')  AS tipo
+  LEFT JOIN
+    (
+    SELECT
+      O3646_CODTIP,
+      O3646_CODSTIP,
+      O3646_DESSTIP,
+      data_date_part
+    FROM
+      curated_internal_mainframe_clientes.mc_sub_tipo
+    WHERE
+      data_date_part = '2026-04-07'
+    ) AS subtipo
+    ON subtipo.O3646_CODTIP = tipo.O3645_CODTIP
+  WHERE
+   -- tipo.data_date_part = (SELECT max(data_date_part) FROM curated_internal_mainframe_clientes.mc_tipo)
+    --AND
+     tipo.O3645_CODTIP IN ('101', '102', '105', '108', '114', '202', '211', '214')
+)
+ 
+SELECT
+  date_format(data_date_part, 'yyyyMM') as CMES,
+  CPERSONA,
+  DIMENSAO_ENI
+  -- first(SEGMENTO, true) AS SEGMENTO,
+  -- first(VINCULACAO, true) AS VINCULACAO,
+  -- first(DIMENSAO_ENI, true) AS DIMENSAO_ENI,
+  -- first(DB1B, true) as DB1B,
+  -- first(UNIVERSIDADES, true) as UNIVERSIDADES
+FROM (
+  SELECT
+    mccliente.CPERSONA,
+    CASE
+      WHEN tipo_subtipo.O3645_CODTIP = '101' THEN tipo_subtipo.O3646_DESSTIP
+      WHEN tipo_subtipo.O3645_CODTIP = '202' THEN tipo_subtipo.O3646_DESSTIP
+      ELSE NULL
+    END AS SEGMENTO,
+    CASE
+      WHEN tipo_subtipo.O3645_CODTIP = '105' THEN tipo_subtipo.O3646_DESSTIP
+      WHEN tipo_subtipo.O3645_CODTIP = '211' THEN tipo_subtipo.O3646_DESSTIP
+      ELSE NULL
+    END AS VINCULACAO,
+    CASE
+      WHEN tipo_subtipo.O3645_CODTIP = '108' THEN tipo_subtipo.O3646_DESSTIP
+      WHEN tipo_subtipo.O3645_CODTIP = '101' AND tipo_subtipo.O3646_CODSTIP = '1A2' THEN tipo_subtipo.O3646_DESSTIP /*ACRESCENTADO EF*/
+      ELSE NULL
+    END AS DIMENSAO_ENI,
+    CASE
+      WHEN tipo_subtipo.O3645_CODTIP = '102' THEN tipo_subtipo.O3646_DESSTIP
+      ELSE NULL
+    END AS UNIVERSIDADES,
+    CASE
+      WHEN tipo_subtipo.O3645_CODTIP = '114' THEN tipo_subtipo.O3646_DESSTIP
+      WHEN tipo_subtipo.O3645_CODTIP = '214' THEN tipo_subtipo.O3646_DESSTIP
+      ELSE NULL
+    END AS DB1B,
+    mccliente.data_date_part
+  FROM (
+    SELECT
+      CONCAT(mccli.O3647_TIPOPERS, LPAD(mccli.O3647_CODPERS, 9, '0')) AS CPERSONA,
+      mccli.O3647_CODTIP,
+      mccli.O3647_CODSTIP,
+      mccli.data_date_part
+    FROM
+      curated_internal_mainframe_clientes.mc_cliente AS mccli
+    WHERE
+      mccli.data_date_part ='2026-04-07'
+      --AND mccli.data_date_part >= '2026-01-01' -- ALTERAR CONDICAO DE ACORDO COM O PRETENDIDO
+  ) mccliente
+  LEFT JOIN tipo_subtipo
+    ON tipo_subtipo.O3645_CODTIP = mccliente.O3647_CODTIP
+    AND tipo_subtipo.O3646_CODSTIP = mccliente.O3647_CODSTIP
+)
+--GROUP BY ALL
+where cpersona='F002081695')
+
+
+
+
+
+select ccligrupo, ccliente, ICLI_SELECIONADO, CTIP_CLI from production.workbench_aa.bi_base_cliente where ccligrupo='0000000008' and cmes=:cmes;
+select zcliente,COD_PERS from curated_internal_mainframe_estruturais.tat01_clientes where DATA_DATE_PART = '2026-04-07' and zcliente='0000000020';
+
+SELECT t1.CCLIGRUPO, t1.CCLIENTE, t2.cod_pers,     
+      CASE
+      WHEN tipo_subtipo.O3645_CODTIP = '108' THEN tipo_subtipo.O3646_DESSTIP
+      ELSE NULL
+    END AS DIMENSAO_ENI,
+FROM (select ccliente, ccligrupo from production.workbench_aa.bi_base_cliente where cmes=:cmes) t1
+LEFT JOIN  (select distinct zcliente,COD_PERS from curated_internal_mainframe_estruturais.tat01_clientes where DATA_DATE_PART = '2026-04-07') t2
+on t1.ccliente = t2.zcliente
+LEFT JOIN (SELECT * FROM production.curated_internal_mainframe_clientes.mc_cliente where DATA_DATE_PART = '2026-04-07') t3
+on t2.cod_pers=t3.O3647_CODPERS
+
+
+SELECT * FROM production.curated_internal_mainframe_clientes.mc_cliente LIMIT 10;
+
+
+
+-- select MAX(TAYD91C0_HTIMEST) from production.curated_internal_mainframe_estruturais.tat91_tabelas where TAYD91C0_CTABELA='Z91';
+
+-- --CCLIGRUPO='0005468421'
+-- --CCLIENTE='5100209954'
+
+
+-- -- -- --DIM_CLIENTE BASE 
+-- SELECT CCLIGRUPO, DISTRITO, CZONA_MORADA
+-- FROM  (select * from workbench_aa.bi_DIM_cliente where CMES = :cmes) 
+-- WHERE CCLIGRUPO='0009614756';
+
+-- -- -- --TATO1 
+-- SELECT ZCLIENTE, TIPO_PERS, COD_PERS
+-- FROM   (select * from production.curated_internal_mainframe_estruturais.tat01_clientes where data_date_part='2026-02-04') 
+-- WHERE ZCLIENTE='7402387060';
+-- --WHERE COD_PERS='007245983';
+
+-- -- --   --TIPO_PERS=F
+-- -- --   --COD_PERS=9877147
+
+-- -- -- --DOMIC
+-- SELECT *, 
+--       regexp_extract(E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1) AS COD_POSTAL
+-- FROM (select * from production.curated_internal_mainframe_clientes.domic_pers_int where data_date_part='2026-02-04')
+-- WHERE E0710_TIPO_PER = 'F' AND E0710_COD_PERS = 9877147;
+
+
+-- -- --SELECIONAR MORADA FISCAL
+-- SELECT *, 
+--       regexp_extract(t1.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1) AS COD_POSTAL,
+--       CASE WHEN t1.E0710_TIPO_PER < t2.E0712_TIPO_PER
+--             OR (t1.E0710_TIPO_PER = t2.E0712_TIPO_PER AND t1.E0710_COD_PERS < t2.E0712_COD_PERS)
+--             OR (t1.E0710_TIPO_PER = t2.E0712_TIPO_PER AND t1.E0710_COD_PERS = t2.E0712_COD_PERS AND t1.E0710_NRODOM< t2.E0712_NRODOM)
+--         THEN 'N'
+--         WHEN t2.E0712_TIPODOM = '01'
+--         THEN 'S'
+--         ELSE 'N' END as CMORADA_FISCAL,
+--         CASE WHEN t2.E0712_TIPODOM = '01' AND t1.E0710_COD_PAIS='PT' THEN 1 --MORADA FISCAL PORTUGUESA
+--               WHEN t1.E0710_COD_PAIS='PT' THEN 2 --MORADA FISCAL ESTRANGEIRA: PRIORIZAR PT
+--         ELSE 3 END AS FILTRO
+-- FROM (select * from production.curated_internal_mainframe_clientes.domic_pers_int where data_date_part='2026-02-04') t1
+-- LEFT JOIN (select * from production.curated_internal_mainframe_clientes.rel_tip_dom_his where data_date_part='2026-02-04' and E0712_FECH_FIN='9999-12-31') t2
+-- on t1.E0710_NRODOM = t2.E0712_NRODOM and t1.E0710_TIPO_PER = t2.E0712_TIPO_PER AND t1.E0710_COD_PERS = t2.E0712_COD_PERS
+-- WHERE t1.E0710_TIPO_PER = 'F' AND t1.E0710_COD_PERS = 8877232;
+
+-- select * from production.curated_internal_mainframe_clientes.rel_tip_dom_his 
+-- where data_date_part='2026-02-04' and E0712_NRODOM='000000002' and E0712_TIPO_PER='F' and E0712_COD_PERS=2800673;
+
+-- --COD_POSTAL=2831904
+
+-- -- -- --INTERFACE_MORADAS_CTT
+-- select * from curated_internal_mainframe_estruturais.interface_moradas_ctt
+-- where CP4=8126;
+
+-- SELECT * FROM production.curated_internal_mainframe_clientes.domic_pers_int where E0710_NRODOM='000000145';
+
+-- SELECT * FROM production.curated_internal_mainframe_clientes.domic_pers_int where E0710_COD_PERS=008718786 AND E0710_TIPO_PER='F' AND data_date_part='2026-02-04';
+
+-- select nut3_code, * from common_parties_individuals.individual_address
+-- where data_date_part =  '2026-02-04' AND postal_code='4815-326' and party_id='7402135702';
+
+                        
+--                           select distinct t1.ccligrupo,
+--                           t1.ccliente,
+--                           regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)',1) AS COD_POSTAL_COMP,
+--                           substr(regexp_extract(t3.E0710_DOM_DESC_TEXT,'(\\d{7})(?!.*\\d)',1),1,4) AS COD_POSTAL,
+--                           --t3.E0710_DOM_DESC_TEXT AS MORADA,
+--                           t4.DD,
+--                           CASE WHEN t5.E0712_TIPODOM = '01'
+--                           THEN 'S'
+--                           ELSE 'N' END as CMORADA_FISCAL,
+--                           CASE WHEN t5.E0712_TIPODOM = '01' AND t3.E0710_COD_PAIS='PT' THEN 1 --MORADA FISCAL PORTUGUESA
+--                                WHEN (t5.E0712_TIPODOM <> '01' OR t5.E0712_TIPODOM IS NULL) AND t3.E0710_COD_PAIS='PT' THEN 2 --MORADA FISCAL ESTRANGEIRA: PRIORIZAR PT
+--                           ELSE 3 END AS FILTRO,
+--                           --t3.E0710_NRODOM as CMORADA,
+--                           --SUBSTR(SUBSTR(t4.DD, 1, 2) || SUBSTR(t4.CC, 1, 2) || SUBSTR(t4.FF, 1, 2),1,4) AS CCONCELHO,
+--                           t4.DD AS DD_COD,
+--                           t6.DD as DD_COD_SUBCOD,
+--                           CASE WHEN t4.DD is NULL THEN "ENTROU" END AS TESTE,
+--                           CASE WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '01' OR (t4.DD is NULL and t6.DD = '01')) THEN 'AVEIRO'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '03' OR (t4.DD is NULL and t6.DD = '03')) THEN 'BRAGA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '02' OR (t4.DD is NULL and t6.DD = '02')) THEN 'BEJA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '04' OR (t4.DD is NULL and t6.DD = '04')) THEN 'BRAGANCA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '05' OR (t4.DD is NULL and t6.DD = '05')) THEN 'CASTELO BRANCO'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '06' OR (t4.DD is NULL and t6.DD = '06')) THEN 'COIMBRA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '07' OR (t4.DD is NULL and t6.DD = '07')) THEN 'EVORA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '08' OR (t4.DD is NULL and t6.DD = '08')) THEN 'FARO'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '09' OR (t4.DD is NULL and t6.DD = '09')) THEN 'GUARDA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '10' OR (t4.DD is NULL and t6.DD = '10')) THEN 'LEIRIA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '11' OR (t4.DD is NULL and t6.DD = '11')) THEN 'LISBOA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '12' OR (t4.DD is NULL and t6.DD = '12')) THEN 'PORTALEGRE'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '13' OR (t4.DD is NULL and t6.DD = '13'))  THEN 'PORTO'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '14' OR (t4.DD is NULL and t6.DD = '14')) THEN 'SANTAREM'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '15' OR (t4.DD is NULL and t6.DD = '15')) THEN 'SETUBAL'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '16' OR (t4.DD is NULL and t6.DD = '16')) THEN 'VIANA CASTELO'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '17' OR (t4.DD is NULL and t6.DD = '17')) THEN 'VILA REAL'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '18' OR (t4.DD is NULL and t6.DD = '18')) THEN 'VISEU'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '19' OR (t4.DD is NULL and t6.DD = '19')) THEN 'ANGRA HEROISMO'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '20' OR (t4.DD is NULL and t6.DD = '20')) THEN 'HORTA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '21' OR (t4.DD is NULL and t6.DD = '21')) THEN 'PONTA DELGADA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '22' OR (t4.DD is NULL and t6.DD = '22')) THEN 'FUNCHAL'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '31' OR (t4.DD is NULL and t6.DD = '31')) THEN 'ILHA DA MADEIRA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '32' OR (t4.DD is NULL and t6.DD = '32')) THEN 'ILHA DO PORTO SANTO'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '41' OR (t4.DD is NULL and t6.DD = '41')) THEN 'ILHA DE SANTA MARIA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '42' OR (t4.DD is NULL and t6.DD = '42')) THEN 'ILHA DE SAO MIGUEL'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '43' OR (t4.DD is NULL and t6.DD = '43')) THEN 'ILHA TERCEIRA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '44' OR (t4.DD is NULL and t6.DD = '44')) THEN 'ILHA DA GRACIOSA'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '45' OR (t4.DD is NULL and t6.DD = '45')) THEN 'ILHA DE SAO JORGE'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '46' OR (t4.DD is NULL and t6.DD = '46')) THEN 'ILHA DO PICO'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '47' OR (t4.DD is NULL and t6.DD = '47')) THEN 'ILHA DO FAIAL'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '48' OR (t4.DD is NULL and t6.DD = '48')) THEN 'ILHA DAS FLORES'
+--                                 WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '49' OR (t4.DD is NULL and t6.DD = '49')) THEN 'ILHA DO CORVO'
+--                                 ELSE 'DESCONHECIDO'
+--                           END AS DISTRITO,
+--                           t3.E0710_COD_PAIS,
+--                           t7.nut3_code
+--                           FROM (select * from workbench_aa.bi_base_cliente where CMES = :cmes) t1
+--                           left join (select * from production.curated_internal_mainframe_estruturais.tat01_clientes where data_date_part='2026-02-04') t2 on t1.CCLIENTE = t2.ZCLIENTE
+--                           left join (select * from production.curated_internal_mainframe_clientes.domic_pers_int where data_date_part='2026-02-04') t3 on t2.TIPO_PERS = t3.E0710_TIPO_PER AND t2.COD_PERS = t3.E0710_COD_PERS
+--                           LEFT JOIN (select * from production.curated_internal_mainframe_clientes.rel_tip_dom_his where data_date_part='2026-02-04' and E0712_FECH_FIN='9999-12-31') t5
+--                           on t3.E0710_NRODOM = t5.E0712_NRODOM and t3.E0710_TIPO_PER = t5.E0712_TIPO_PER AND t3.E0710_COD_PERS = t5.E0712_COD_PERS
+--                           left join (select distinct DD, CP4, CP3, data_date_part from curated_internal_mainframe_estruturais.interface_moradas_ctt) t4 on regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1) = t4.CP4*1000+t4.CP3 and t4.data_date_part='2026-01-31'
+--                           left join (select distinct DD, CP4, CP3, data_date_part from curated_internal_mainframe_estruturais.interface_moradas_ctt) t6 on substr(regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1),1,4) = t6.CP4 and t6.data_date_part='2026-01-31'
+--                           left join (select nut3_code, postal_code, party_id from common_parties_individuals.individual_address where data_date_part='2026-02-04') t7 on t1.CCLIENTE=t7.party_id and t1.CTIP_CLI='P' and substr(regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1),1,4)=substr(t7.postal_code,1,4) and substr(regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1),5,7)=substr(t7.postal_code,6,8)
+--                           left join (select nut3_code, postal_code, party_id from common_parties_entities.entity_address where data_date_part='2026-02-04') t7 on t1.CCLIENTE=t7.party_id and t1.CTIP_CLI='J' and substr(regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1),1,4)=substr(t7.postal_code,1,4) and substr(regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1),5,7)=substr(t7.postal_code,6,8)
+
+--                           ORDER BY CCLIGRUPO, DISTRITO DESC;
+
+
+
+-- select ccligrupo, cmes, ctip_cli, ICLI_SELECIONADO
+-- from workbench_aa.bi_base_cliente 
+-- where CMES in ('202601', '202512', '202511', '202510', '202509', '202508', '202507') AND CCLIGRUPO='0003828349'
+-- ORDER BY CMES;
+
+-- select ccligrupo, cmes, ctip_cli, VINCULACAO, CHURN_CONFIRMADO 
+-- from workbench_aa.bi_dim_cliente 
+-- where CMES in ('202602','202601', '202512', '202511', '202510', '202509', '202508', '202507') AND CCLIGRUPO='0003828349'
+-- ORDER BY CMES;
+
+-- select ccligrupo, cmes, ctip_cli, VINCULACAO, CHURN_CONFIRMADO 
+-- from workbench_aa.bi_dim_cliente 
+-- where CMES in ('202602','202601', '202512', '202511', '202510', '202509', '202508', '202507') AND CCLIGRUPO='0001691572'
+-- ORDER BY CMES;
+
+-- SELECT A.CCLIGRUPO, A.CMES, A.CTIP_CLI, A.VINCULACAO, A.CHURN_CONFIRMADO, B.VINCULACAO AS VINCULACAO_202507
+-- FROM (SELECT * FROM workbench_aa.bi_dim_cliente WHERE CMES='202601') A 
+-- LEFT JOIN (SELECT * FROM workbench_aa.bi_dim_cliente WHERE CMES='202507') B ON A.CCLIGRUPO=B.CCLIGRUPO AND A.CTIP_CLI=B.CTIP_CLI
+-- WHERE B.VINCULACAO = "VI" AND A.CHURN_CONFIRMADO=1;
+
+-- AND CMES='202601'
+-- --where CMES ='202512' AND CHURN_CONFIRMADO=1 AND VINCULACAO != 'IN'
+-- ---order by cmes;
+-- -- CMES in ('202601', '202512', '202511', '202510', '202509', '202508', '202507') 
+
+-- SELECT DISTINCT O3647_CODsTIP FROM production.curated_internal_mainframe_clientes.mc_cliente; 
+
+
+
+
