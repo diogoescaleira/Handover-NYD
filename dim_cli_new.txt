@@ -1,0 +1,744 @@
+WITH sim_dim_cliente_base as
+(
+select 
+  base.CMES as CMES_base
+  ,base.CCLIGRUPO as CCLIGRUPO_base
+  ,base.CTIP_CLI as CTIP_CLI_base
+  ,base.CTIPO as CTIPO_base
+  ,base.CBALCLI as CBALCLI_base
+  ,base.CGESTOR as CGESTOR_base
+  ,base.SEGMENTO_CORP as SEGMENTO_CORP_base  
+  ,base.CCLI_ORIGEM AS CCLI_ORIGEM_base
+  ,base.VINCULACAO AS VINCULACAO_BASE
+  ,base.ICLI_ACTIVO AS ICLI_ACTIVO_BASE
+  ,base.ISEXO AS ISEXO_BASE
+  ,base.PROFISSAO AS PROFISSAO_BASE
+  ,base.CHABILIT AS CHABILIT_BASE
+  ,base.CNACIONALIDADE AS CNACIONALIDADE_BASE
+  ,base.VIDADE_ANOS AS VIDADE_ANOS_BASE
+  ,base.CIDADE_CLI_PARTICULAR as CIDADE_CLI_PARTICULAR_BASE
+  ,base.I_DO_90D as I_DO_90D_BASE
+  ,base.icolaborador as icolaborador_base
+  ,base.antiguidade as antiguidade_base
+  ,base.distrito as distrito_base 
+  ,base.NFAMILIAS as nfamilias_base
+  ,base.churn_confirmado as churn_confirmado_base
+  ,base.FLUXO_SEGMENTO_ENTRADA as FLUXO_SEGMENTO_ENTRADA_base 
+  ,base.FLUXO_SEGMENTO_SAIDA as FLUXO_SEGMENTO_SAIDA_base
+  ,base.ATIVO_INATIVO as ativo_inativo_base
+  ,base.ieni as ieni_base
+  ,base.ESTADO_PROPOSTA as estado_proposta_base
+  ,base.GSUBTIPO_PROP as GSUBTIPO_PROP_base
+  ,base.dnovo_cliente as dnovo_cliente_base
+  ,base.VCOMISSOES as VCOMISSOES_base
+  ,base.VMARGEMF as vmargemf_base
+  ,base.pb as pb_base
+  ,base.VCOMISSOES_ACUM as VCOMISSOES_ACUM_base
+  ,base.VMARGEMF_ACUM as VMARGEMF_ACUM_base
+  ,base.PB_ACUM as pb_acum_base
+  ,base.PB_ANUALIZADO as pb_anualizado_base
+  ,base.CMODELO_SERVICO as cmodelo_servico_base
+  
+  ,sim.*
+  ,case when trim(base.CMES) <> trim(sim.CMES) then 1 else 0 end as flag_validacao_CMES
+  ,case when (base.CCLIGRUPO) <> (sim.CCLIGRUPO) then 1 else 0 end as flag_validacao_CCLIGRUPO
+  ,case when (base.CTIP_CLI) <> (sim.CTIP_CLI) then 1 else 0 end as flag_validacao_CTIP_CLI
+  ,case when (base.CTIPO) <> (sim.CTIPO) then 1 else 0 end as flag_validacao_CTIPO
+  ,case when (base.CBALCLI) <> (sim.CBALCLI) then 1 else 0 end as flag_validacao_CBALCLI
+  ,case when (base.CGESTOR) <> (sim.CGESTOR) then 1 else 0 end as flag_validacao_CGESTOR
+  ,case when (base.SEGMENTO_CORP) <> (sim.SEGMENTO_CORP) then 1 else 0 end as flag_validacao_SEGMENTO_CORP
+  ,case when (base.CCLI_ORIGEM) <> (sim.CCLI_ORIGEM) then 1 else 0 end as flag_validacao_CCLI_ORIGEM
+  ,case when (base.VINCULACAO) <> (sim.VINCULACAO) then 1 else 0 end as flag_validacao_VINCULACAO
+  ,case when (base.ICLI_ACTIVO) <> (sim.ICLI_ACTIVO) then 1 else 0 end as flag_validacao_ICLI_ACTIVO
+  ,case when (base.ISEXO) <> (sim.ISEXO) then 1 else 0 end as flag_validacao_ISEXO
+  ,case when trim(base.PROFISSAO) <> trim(sim.PROFISSAO) then 1 else 0 end as flag_validacao_PROFISSAO
+  ,case when (base.CHABILIT) <> (sim.CHABILIT) then 1 else 0 end as flag_validacao_CHABILIT
+  ,case when (base.CNACIONALIDADE) <> (sim.CNACIONALIDADE) then 1 else 0 end as flag_validacao_CNACIONALIDADE
+  ,case when (base.VIDADE_ANOS) <> (sim.VIDADE_ANOS) then 1 else 0 end as flag_validacao_VIDADE_ANOS
+  ,case when (base.CIDADE_CLI_PARTICULAR) <> (sim.CIDADE_CLI_PARTICULAR) then 1 else 0 end as flag_validacao_CIDADE_CLI_PARTICULAR
+  ,case when (base.I_DO_90D) <> (sim.I_DO_90D) then 1 else 0 end as flag_validacao_I_DO_90D
+  ,case when (base.icolaborador) <> (sim.icolaborador) then 1 else 0 end as flag_validacao_icolaborador
+  ,case when (base.antiguidade) <> (sim.antiguidade) then 1 else 0 end as flag_validacao_antiguidade
+  -- ,case when (base.distrito) <> (sim.distrito) then 1 else 0 end as flag_validacao_distrito
+  ,case when (base.nfamilias) <> (sim.nfamilias) then 1 else 0 end as flag_validacao_nfamilias
+  ,case when (base.churn_confirmado) <> (sim.churn_confirmado) then 1 else 0 end as flag_validacao_churn_confirmado
+  ,case when (base.FLUXO_SEGMENTO_ENTRADA) <=> (sim.FLUXO_SEGMENTO_ENTRADA) then 0 else 1 end as flag_validacao_FLUXO_SEGMENTO_ENTRADA
+  ,case when (base.FLUXO_SEGMENTO_saida) <=> (sim.FLUXO_SEGMENTO_saida) then 0 else 1 end as flag_validacao_FLUXO_SEGMENTO_saida
+  -- ,case when (base.ativo_inativo) <> (sim.ativo_inativo) then 1 else 0 end as flag_validacao_ativo_inativo
+  -- ,case when (base.ieni) <=> (sim.DIMENSAO_ENI) then 0 else 1 end as flag_validacao_ieni
+  -- ,case when (base.estado_proposta) <>(sim.estado_proposta) then 1 else 0 end as flag_validacao_estado_proposta
+  -- ,case when (base.GSUBTIPO_PROP) <> (sim.GSUBTIPO_PROP) then 1 else 0 end as flag_validacao_GSUBTIPO_PROP
+  -- ,case when (base.dnovo_cliente) <> (sim.dnovo_cliente) then 1 else 0 end as flag_validacao_dnovo_cliente
+  -- ,case when round(base.vcomissoes,2) <=> (sim.vcomissoes) then 0 else 1 end as flag_validacao_vcomissoes
+  -- ,case when round(base.vmargemf,2) <> (sim.vmargemf) then 1 else 0 end as flag_validacao_vmargemf
+  -- ,case when round(base.pb,2) <> (sim.pb) then 1 else 0 end as flag_validacao_pb
+  -- ,case when round(base.VCOMISSOES_ACUM,2) <=> (sim.vcomissoes_acum) then 0 else 1 end as flag_validacao_vcomissoes_acum
+  -- ,case when round(base.vmargemf_acum,2) <> (sim.vmargemf_acum) then 1 else 0 end as flag_validacao_vmargemf_acum
+  -- ,case when round(base.pb_acum,2) <> (sim.pb_acum) then 1 else 0 end as flag_validacao_pb_acum
+  -- ,case when round(base.pb_anualizado,2) <=> round(sim.pb_anualizado,2) then 0 else 1 end as flag_validacao_pb_anualizado
+,case when base.cmodelo_servico <=> sim.cmodelo_servico then 0 else 1 end as flag_validacao_cmodelo_servico
+from 
+-- 1. OBTER TABELA BASE DE BI  -- DEZ: xxxx -- JAN: xxxx MAR: 5 397 944
+  (
+  select *
+  from workbench_aa.bi_dim_cliente
+  where CMES = :cmes 
+  ) base 
+
+-- 2. LJ COM CAMPOS SIMULADOS 
+
+left join 
+      (
+        SELECT	--dateadd( s, -1, dateadd( mm, datediff( t1.CMES, getdate() ), 0 ) ) AS CMES,
+                t1.CMES AS CMES,
+                -- t1.CCLIENTE,
+                t1.CCLIGRUPO,
+                t1.CTIP_CLI,
+                  /* CTIPO */
+                    CASE WHEN t1.CTIP_CLI = 'F' 
+                    THEN t2.CTIPO
+                  WHEN t1.CTIP_CLI = 'J' 
+                    THEN t3.CTIPO
+                    END AS CTIPO,
+                t1.CBALCLI,
+                t4.CGESTOR_COM as CGESTOR, 
+                t1.SEGMENTO_CORP,
+                t5.CCLI_ORIGEM,
+                t1.VINCULACAO,
+                case when t1.VINCULACAO in ('AC','VI','VT','VTP') then 'S' else 'N' end as ICLI_ACTIVO,
+                t6.ISEXO,
+                t6.CGRUPO_PROF AS PROFISSAO,
+                t7.CHABILIT,
+                t6.CNACIONALIDADE,
+                case when t1.CTIP_CLI='F' then t8.VIDADE_MAX ELSE datediff(YEAR, t6.DNASCIMENTO, date_trunc('month', to_date(t1.CMES, 'yyyyMM'))) END AS VIDADE_ANOS,
+                case when t1.CTIP_CLI='F' and t8.VIDADE_MAX IS NULL then ''
+                     when t1.CTIP_CLI='F' and t8.VIDADE_MAX < 18 then '1'
+                     when t1.CTIP_CLI='F' and t8.VIDADE_MAX < 35 then '2'
+                     when t1.CTIP_CLI='F' and t8.VIDADE_MAX < 50 then '3'
+                     when t1.CTIP_CLI='F' and t8.VIDADE_MAX < 70 then '4'
+                     when t1.CTIP_CLI='F' and t8.VIDADE_MAX >= 70 then '5'
+                end as CIDADE_CLI_PARTICULAR,
+                t8.I_DO_90D,
+                t8.icolaborador,
+                t8.antiguidade,
+                -- t9.distrito,
+                -- T9.CMORADA_ZONA,
+                t2.vnum_familias as nfamilias,
+                t10.churn_confirmado,
+                t11.FLUXO_SEGMENTO_ENTRADA,
+                t11.FLUXO_SEGMENTO_saida,
+                -- (CASE when t1.CTIP_CLI='F' then case
+                --                                 WHEN t1.VINCULACAO not in ('IN', '') THEN 'ATIVO'
+                --                                 WHEN (t1.VINCULACAO in ('IN','') AND t1.CCLIENTE_ESP<>'') THEN 'INATIVO'
+                --                                 ELSE 'EX CLIENTE' END
+                -- end) AS ATIVO_INATIVO,
+                -- case when t1.ctip_cli  ='F' then t12.dimensao_eni else false end as dimensao_eni
+                -- min( t13.estado_proposta) as estado_proposta,
+                -- min( case 
+                --         when CTIPO_PROP='PCC' and trim(CSUBTIPO_PROP) = '*' then '1'
+                --         when CSUBTIPO_PROP in ('PEPENOV','PNGNOV') then '1'
+                --         when coalesce(trim(CSUBTIPO_PROP),'') <> '' then '2' end) AS GSUBTIPO_PROP
+                -- ,min(case when t1.CTIP_CLI = 'F' then case when t1.CMES >= date_format(t14.DINI_RELACAO_TITULARIDADE,'yyyyMM') then t14.DINI_RELACAO_TITULARIDADE end else t0.DABERTURA_CLIENTE end) AS DNOVO_CLIENTE
+                -- , t15.VCOMISSOES
+                -- , t15.VMARGEMF
+                -- , t15.PB
+                -- , t15.VCOMISSOES_ACUM 
+                -- , t15.VMARGEMF_ACUM
+                -- , t15.PB_ACUM 
+                -- ,case 
+                --     when t1.CTIP_CLI = 'F' then (t15.PB_ACUM / cast(substr(t1.CMES,5,2) as int)) * 12
+                --     when t1.CTIP_CLI = 'J' then t16.PB12M
+                --   end as PB_ANUALIZADO
+                t17.cmodelo_servico
+
+            FROM (select * from workbench_aa.bi_base_cliente where CMES = :cmes) t1
+            -- left join(select * from curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part = :ref_date_dutil) t0 on t1.ccliente = t0.ccliente
+            LEFT JOIN (SELECT CMES, CCLIENTE_ESP, CTIPO, VNUM_FAMILIAS FROM production.curated_internal_datawarehouse_dmmarketingautomation.matf663_cli_vincul_m WHERE ICLI_SELECIONADO=1 
+                  AND (CCLIGRUPO <> '0001785966' AND CCLIENTE_ESP <> '5100135104') /*Programa temporário*/) t2
+            ON t1.CMES=t2.CMES AND t1.CCLIENTE_ESP=t2.CCLIENTE_ESP
+            LEFT JOIN (SELECT CMES, CCLIENTE_ESP, CTIPO FROM production.curated_internal_datawarehouse_dw.dwt1116_vincul_emp WHERE ICLI_SELECIONADO=1) t3
+            ON t1.CMES=t3.CMES AND t1.CCLIENTE_ESP=t3.CCLIENTE_ESP
+            LEFT JOIN 
+              (SELECT	CCLIENTE,
+                      CGESTOR_COM,
+                      TIMESTAMP
+              FROM (
+                SELECT CCLIENTE,
+                      CGESTOR_COM,
+                      TIMESTAMP,
+                      row_number() OVER(PARTITION BY CCLIENTE ORDER BY TIMESTAMP DESC) AS RNk
+                FROM production.curated_internal_datawarehouse_dw.dwt176_cliente_marca
+                WHERE TIMESTAMP > '2026-01-01' AND TIMESTAMP < '2026-02-05'
+              )
+              WHERE Rnk = 1) t4 ON t1.CCLIENTE=t4.CCLIENTE 
+            LEFT JOIN (
+              SELECT CCLIGRUPO,
+                    CTIP_CLI,
+                    CMES,
+                      (case
+                      when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 1 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=1 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=1 then 'S1'
+                      when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 1 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=1 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=0 then 'S2'
+                      when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 1 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=0 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=1 then 'S3'
+                      when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 1 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=0 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=0 then 'S4'
+                      when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 0 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=1 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=1 then 'P1'
+                      when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 0 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=1 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=0 then 'P2'
+                      when (max(case when CCLIENTE not like '51%' and CCLIENTE not like'21%' then 1 else 0 end)) = 0 and (max(case when CCLIENTE like '51%' then 1 else 0 end))=0 and (max(case when CCLIENTE like '21%' then 1 else 0 end))=1 then 'B1'
+                      end) AS CCLI_ORIGEM
+                    FROM workbench_aa.bi_BASE_cliente
+                    where CMES = :cmes 
+                    GROUP BY CCLIGRUPO,
+                            CTIP_CLI,
+                            CMES
+            ) t5 on t1.CCLIGRUPO=t5.CCLIGRUPO AND t1.CTIP_CLI=t5.ctip_cli
+            LEFT JOIN (select * from production.curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part = '2026-02-04') t6 on t1.CCLIENTE=t6.CCLIENTE
+            LEFT JOIN (select t1.CCLIGRUPO,
+                              MAX(case
+                                      when t2.CHABILIT in ('001','002','003','004','005','006','007','008','009','010','011','012','013') then t2.CHABILIT
+                                      when t2.CHABILIT = '#' then '000'
+                                      when t2.CHABILIT = '*' then '999'
+                                      else '000'
+                                  end) as CHABILIT
+                        from workbench_aa.bi_base_cliente t1
+                        left join (select * from production.curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part = '2026-02-04') t2
+                        on t1.CCLIENTE = t2.CCLIENTE
+                        WHERE t1.CMES = :cmes
+                        GROUP BY CCLIGRUPO) t7 on t1.CCLIGRUPO=t7.CCLIGRUPO
+             left join (select    t1.ccligrupo,
+                                  max(case when year(t2.DNASCIMENTO) > 1582 then datediff(year, t2.DNASCIMENTO, last_day(to_date(t1.CMES, 'yyyyMM'))) else 0 end) as VIDADE_MAX,
+                                  min(case when datediff(day, t2.DABERTURA_CLIENTE, last_day(to_date(t1.CMES, 'yyyyMM'))) <=90 then 1 else 0 end) as I_DO_90D,
+                                  max(FCLIENTE_EMPREGADO) as ICOLABORADOR,
+                                  max(case when datediff(year, t2.DABERTURA_CLIENTE, last_day(to_date(t1.CMES, 'yyyyMM'))) <= 1 then '1' 
+                                           when datediff(year, t2.DABERTURA_CLIENTE, last_day(to_date(t1.CMES, 'yyyyMM'))) <= 5 then '2'
+                                           when datediff(year, t2.DABERTURA_CLIENTE, last_day(to_date(t1.CMES, 'yyyyMM'))) <= 10 then '3'
+                                           when datediff(year, t2.DABERTURA_CLIENTE, last_day(to_date(t1.CMES, 'yyyyMM'))) <= 20 then '4'
+                                           else '5'
+                                           end) as antiguidade
+                        from workbench_aa.bi_base_cliente t1 
+                        left join (select * from production.curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part = '2026-02-04') t2
+                        on t1.CCLIENTE = t2.CCLIENTE
+                        where CMES = :cmes
+                        group by t1.CCLIGRUPO) t8 on t1.CCLIGRUPO = t8.CCLIGRUPO
+                        -- left join (
+                        --   SELECT CCLIGRUPO, MAX(DISTRITO) AS DISTRITO, MAX(NUT3_CODE) AS CMORADA_ZONA FROM (
+                        --     SELECT CCLIGRUPO, DISTRITO, NUT3_CODE, FILTRO FROM(
+                        --   select distinct t1.ccligrupo,
+                        --   t1.ccliente,
+                        --   --regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1) AS COD_POSTAL_COMP,
+                        --   substr(regexp_extract(t3.E0710_DOM_DESC_TEXT,'(\\d{7})(?!.*\\d)',1),1,4) AS COD_POSTAL,
+                        --   --t3.E0710_DOM_DESC_TEXT AS MORADA,
+                        --   t4.DD,
+                        --   CASE WHEN t5.E0712_TIPODOM = '01'
+                        --   THEN 'S'
+                        --   ELSE 'N' END as CMORADA_FISCAL,
+                        --   CASE WHEN t5.E0712_TIPODOM = '01' AND t3.E0710_COD_PAIS='PT' THEN 1 --MORADA FISCAL PORTUGUESA
+                        --        WHEN (t5.E0712_TIPODOM <> '01' OR t5.E0712_TIPODOM IS NULL) AND t3.E0710_COD_PAIS='PT' THEN 2 --MORADA FISCAL ESTRANGEIRA: PRIORIZAR PT
+                        --   ELSE 3 END AS FILTRO,
+                        --   --t3.E0710_NRODOM as CMORADA,
+                        --   --SUBSTR(SUBSTR(t4.DD, 1, 2) || SUBSTR(t4.CC, 1, 2) || SUBSTR(t4.FF, 1, 2),1,4) AS CCONCELHO,
+                        --   t4.DD AS DD_COD,
+                        --   t6.DD as DD_COD_SUBCOD,
+                        --   CASE WHEN t4.DD is NULL THEN "ENTROU" END AS TESTE,
+                        --   CASE WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '01' OR (t4.DD is NULL and t6.DD = '01')) THEN 'AVEIRO'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '03' OR (t4.DD is NULL and t6.DD = '03')) THEN 'BRAGA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '02' OR (t4.DD is NULL and t6.DD = '02')) THEN 'BEJA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '04' OR (t4.DD is NULL and t6.DD = '04')) THEN 'BRAGANCA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '05' OR (t4.DD is NULL and t6.DD = '05')) THEN 'CASTELO BRANCO'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '06' OR (t4.DD is NULL and t6.DD = '06')) THEN 'COIMBRA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '07' OR (t4.DD is NULL and t6.DD = '07')) THEN 'EVORA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '08' OR (t4.DD is NULL and t6.DD = '08')) THEN 'FARO'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '09' OR (t4.DD is NULL and t6.DD = '09')) THEN 'GUARDA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '10' OR (t4.DD is NULL and t6.DD = '10')) THEN 'LEIRIA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '11' OR (t4.DD is NULL and t6.DD = '11')) THEN 'LISBOA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '12' OR (t4.DD is NULL and t6.DD = '12')) THEN 'PORTALEGRE'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '13' OR (t4.DD is NULL and t6.DD = '13'))  THEN 'PORTO'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '14' OR (t4.DD is NULL and t6.DD = '14')) THEN 'SANTAREM'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '15' OR (t4.DD is NULL and t6.DD = '15')) THEN 'SETUBAL'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '16' OR (t4.DD is NULL and t6.DD = '16')) THEN 'VIANA CASTELO'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '17' OR (t4.DD is NULL and t6.DD = '17')) THEN 'VILA REAL'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '18' OR (t4.DD is NULL and t6.DD = '18')) THEN 'VISEU'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '19' OR (t4.DD is NULL and t6.DD = '19')) THEN 'ANGRA HEROISMO'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '20' OR (t4.DD is NULL and t6.DD = '20')) THEN 'HORTA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '21' OR (t4.DD is NULL and t6.DD = '21')) THEN 'PONTA DELGADA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '22' OR (t4.DD is NULL and t6.DD = '22')) THEN 'FUNCHAL'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '31' OR (t4.DD is NULL and t6.DD = '31')) THEN 'ILHA DA MADEIRA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '32' OR (t4.DD is NULL and t6.DD = '32')) THEN 'ILHA DO PORTO SANTO'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '41' OR (t4.DD is NULL and t6.DD = '41')) THEN 'ILHA DE SANTA MARIA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '42' OR (t4.DD is NULL and t6.DD = '42')) THEN 'ILHA DE SAO MIGUEL'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '43' OR (t4.DD is NULL and t6.DD = '43')) THEN 'ILHA TERCEIRA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '44' OR (t4.DD is NULL and t6.DD = '44')) THEN 'ILHA DA GRACIOSA'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '45' OR (t4.DD is NULL and t6.DD = '45')) THEN 'ILHA DE SAO JORGE'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '46' OR (t4.DD is NULL and t6.DD = '46')) THEN 'ILHA DO PICO'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '47' OR (t4.DD is NULL and t6.DD = '47')) THEN 'ILHA DO FAIAL'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '48' OR (t4.DD is NULL and t6.DD = '48')) THEN 'ILHA DAS FLORES'
+                        --         WHEN t3.E0710_COD_PAIS='PT' AND (t4.DD = '49' OR (t4.DD is NULL and t6.DD = '49')) THEN 'ILHA DO CORVO'
+                        --         ELSE 'DESCONHECIDO'
+                        --   END AS DISTRITO,
+                        --   t3.E0710_COD_PAIS,
+                        --   t7.nut3_code
+                        --   FROM (select * from workbench_aa.bi_base_cliente where CMES = :cmes) t1
+                        --   left join (select * from production.curated_internal_mainframe_estruturais.tat01_clientes where data_date_part='2026-02-04') t2 on t1.CCLIENTE = t2.ZCLIENTE
+                        --   left join (select * from production.curated_internal_mainframe_clientes.domic_pers_int where data_date_part='2026-02-04') t3 on t2.TIPO_PERS = t3.E0710_TIPO_PER AND t2.COD_PERS = t3.E0710_COD_PERS
+                        --   LEFT JOIN (select * from production.curated_internal_mainframe_clientes.rel_tip_dom_his where data_date_part='2026-02-04' and E0712_FECH_FIN='9999-12-31') t5
+                        --   on t3.E0710_NRODOM = t5.E0712_NRODOM and t3.E0710_TIPO_PER = t5.E0712_TIPO_PER AND t3.E0710_COD_PERS = t5.E0712_COD_PERS
+                        --   left join (select distinct DD, CP4, CP3, data_date_part from curated_internal_mainframe_estruturais.interface_moradas_ctt) t4 on regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1) = t4.CP4*1000+t4.CP3 and t4.data_date_part='2026-01-31'
+                        --   left join (select distinct DD, CP4, CP3, data_date_part from curated_internal_mainframe_estruturais.interface_moradas_ctt) t6 on substr(regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1),1,4) = t6.CP4 and t6.data_date_part='2026-01-31'
+                        --   left join (select nut3_code,postal_code from common_parties_individuals.individual_address where data_date_part='2026-02-04') t7 on substr(regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1),1,4) = substr(t7.postal_code,1,4) and substr(regexp_extract(t3.E0710_DOM_DESC_TEXT, '(\\d{7})(?!.*\\d)', 1),5,7) = substr(t7.postal_code,6,8)
+                        --   ORDER BY CCLIGRUPO, DISTRITO DESC
+                        --   )
+                        --   QUALIFY ROW_NUMBER() OVER (PARTITION BY CCLIGRUPO ORDER BY FILTRO) = 1)
+                        --   GROUP BY CCLIGRUPO) t9 on t1.ccligrupo=t9.ccligrupo
+              left join ( SELECT 
+                            ctip_cli,
+                            ccligrupo,
+                            CASE 
+                                WHEN SUM(
+                                        CASE 
+                                            WHEN rn <= 6 AND vinculacao = 'IN' THEN 1
+                                            ELSE 0
+                                        END
+                                         ) = 6
+                                THEN TRUE
+                                ELSE FALSE
+                            END AS churn_confirmado
+
+                        FROM (
+            SELECT ant.*,
+            ROW_NUMBER() OVER (PARTITION BY ant.ccligrupo, ant.ctip_cli ORDER BY ant.VMESES_DESDE_ANALISE DESC) AS rn 
+          from(
+            select base.cmes as cmes_analise,base.ccligrupo,base.ctip_cli,dim.cmes , dim.vinculacao, floor(months_between(to_date(dim.cmes,'yyyyMM'), to_date(base.cmes,'yyyyMM'))) as VMESES_DESDE_ANALISE
+              from (select * from workbench_aa.bi_base_cliente where cmes = :cmes and ICLI_SELECIONADO = 1) base
+                inner join (select * from workbench_aa.bi_dim_cliente) dim
+                on base.ccligrupo = dim.ccligrupo and base.ctip_cli = dim.ctip_cli and base.cmes <> dim.cmes and floor(months_between(to_date(dim.cmes,'yyyyMM'), to_date(base.cmes,'yyyyMM'))) between -6 and -1
+              union all
+              select cmes as cmes_analise,ccligrupo,ctip_cli, :cmes,vinculacao,0 AS VMESES_DESDE_ANALISE from workbench_aa.bi_base_cliente where cmes = :cmes and ICLI_SELECIONADO = 1
+              ) ant 
+              where ant.vmeses_desde_analise between -6 and 0 ) x
+              group by ctip_cli,ccligrupo
+              ) t10
+              on t1.ccligrupo = t10.ccligrupo and t1.ctip_cli = t10.ctip_cli 
+          left join( 
+                    select *,
+                    CASE 
+                        WHEN SEGMENTO_CORP = SEGMENTO_CORP_MES_ANT THEN NULL
+                        WHEN VPRIORIDADE < VPRIORIDADE_MES_ANT
+                            THEN CONCAT('ENTRADA') --, SEGMENTO_CORP, ': UPGRADE')
+                        ELSE CONCAT('ENTRADA')  --, SEGMENTO_CORP, ': DOWNGRADE')
+                    END AS FLUXO_SEGMENTO_ENTRADA,
+
+                    CASE 
+                        WHEN SEGMENTO_CORP = SEGMENTO_CORP_MES_ANT THEN NULL
+                        WHEN VPRIORIDADE < VPRIORIDADE_MES_ANT
+                            THEN CONCAT('SAÍDA ', SEGMENTO_CORP_MES_ANT) --, ': UPGRADE')
+                        ELSE CONCAT('SAÍDA ', SEGMENTO_CORP_MES_ANT)--, ': DOWNGRADE')
+                    END AS FLUXO_SEGMENTO_SAIDA from(
+              select ant.*,vprioridade, LAG(SEGMENTO_CORP) OVER (PARTITION BY CCLIGRUPO, CTIP_CLI ORDER BY CMES) AS SEGMENTO_CORP_MES_ANT, LAG(VPRIORIDADE) OVER ( PARTITION BY CCLIGRUPO, CTIP_CLI ORDER BY CMES ) AS VPRIORIDADE_MES_ANT
+             from (
+              select base.cmes as cmes_analise,base.ccligrupo,base.ctip_cli,dim.cmes , dim.vinculacao, floor(months_between(to_date(dim.cmes,'yyyyMM'), to_date(base.cmes,'yyyyMM'))) as VMESES_DESDE_ANALISE,dim.SEGMENTO_CORP
+                from (select * from workbench_aa.bi_base_cliente where cmes = :cmes and ICLI_SELECIONADO = 1) base
+                  inner join (select * from workbench_aa.bi_dim_cliente) dim
+                  on base.ccligrupo = dim.ccligrupo and base.ctip_cli = dim.ctip_cli and base.cmes <> dim.cmes and floor(months_between(to_date(dim.cmes,'yyyyMM'), to_date(base.cmes,'yyyyMM'))) between -6 and -1
+                union all
+                select cmes as cmes_analise,ccligrupo,ctip_cli, :cmes,vinculacao,0 AS VMESES_DESDE_ANALISE, SEGMENTO_CORP from workbench_aa.bi_base_cliente where cmes = :cmes and ICLI_SELECIONADO = 1
+                )ant
+                inner join (
+                              WITH prioridade_segmentos AS (
+                                  SELECT 'PP' AS CSEGMENTO_CORP, 1 AS VPRIORIDADE UNION ALL
+                                  SELECT 'RA', 2 UNION ALL
+                                  SELECT 'RM', 3 UNION ALL
+                                  SELECT 'RB', 4
+                              )
+                              SELECT *
+                              FROM prioridade_segmentos
+                              ) PRIORIDADE_SEGMENTOS
+                              on ant.SEGMENTO_CORP = PRIORIDADE_SEGMENTOS.CSEGMENTO_CORP
+                where ant.VMESES_DESDE_ANALISE in (0,-1)
+                  ORDER BY CMES_ANALISE,CCLIGRUPO,  CTIP_CLI, CMES) x
+                  WHERE SEGMENTO_CORP IS NOT NULL
+                  AND SEGMENTO_CORP_MES_ANT IS NOT NULL
+                  AND SEGMENTO_CORP <> SEGMENTO_CORP_MES_ANT
+              ) T11
+              on t1.ccligrupo = t11.ccligrupo and t1.ctip_cli = t11.ctip_cli and t1.cmes = t11.cmes
+
+          --     left join(
+          --     select distinct mc.*,tat01.zcliente 
+          --     from  (WITH tipo_subtipo AS (
+          --             SELECT
+          --                 tipo.O3645_CODTIP, ---
+          --                 subtipo.O3646_CODSTIP
+          --                 -- subtipo.O3646_DESSTIP --
+          --             FROM
+          --                 curated_internal_mainframe_clientes.mc_tipo AS tipo
+          --             LEFT JOIN
+          --                 (
+          --                 SELECT
+          --                 O3646_CODTIP,
+          --                 O3646_CODSTIP,
+          --                 data_date_part
+          --                 FROM
+          --                 curated_internal_mainframe_clientes.mc_sub_tipo
+          --                 WHERE
+          --                 data_date_part = (SELECT max(data_date_part) FROM curated_internal_mainframe_clientes.mc_sub_tipo where DATA_DATE_PART <=:ref_date_dutil)
+          --                 ) AS subtipo
+          --                 ON subtipo.O3646_CODTIP = tipo.O3645_CODTIP
+          --             WHERE
+          --                 tipo.data_date_part = (SELECT max(data_date_part) FROM curated_internal_mainframe_clientes.mc_tipo where DATA_DATE_PART <=:ref_date_dutil)
+          --                 AND tipo.O3645_CODTIP IN ('108')
+          --             )
+                      
+          --             SELECT
+          --             date_format(data_date_part, 'yyyyMM') as CMES,
+          --             Cod_pers,
+          --             case when max(DIMENSAO_ENI) = 1 THEN true ELSE false END AS DIMENSAO_ENI
+
+          --             FROM (
+          --                     SELECT
+          --                         mccliente.O3647_CODPERS as cod_pers,
+          --                         CASE
+          --                         WHEN tipo_subtipo.O3645_CODTIP = '108' THEN 1
+          --                         ELSE 0
+          --                         END AS DIMENSAO_ENI,
+          --                         mccliente.data_date_part
+
+          --                         FROM (
+          --                             SELECT
+          --                            mccli.O3647_CODPERS,
+          --                             mccli.O3647_CODTIP,
+          --                             mccli.O3647_CODSTIP,
+          --                             mccli.data_date_part
+          --                             FROM
+          --                             curated_internal_mainframe_clientes.mc_cliente AS mccli
+          --                             WHERE
+          --                             mccli.data_date_part IN (SELECT max(data_date_part) FROM curated_internal_mainframe_clientes.mc_cliente 
+          --                             WHERE DATA_DATE_PART <=:ref_date_dutil GROUP BY MONTH(data_date_part), YEAR(data_date_part))
+          --                             AND mccli.data_date_part >= :date -- 2026-01-01 -- ALTERAR CONDICAO DE ACORDO COM O PRETENDIDO
+          --                             ) mccliente
+          --                             LEFT JOIN tipo_subtipo
+          --                                 ON tipo_subtipo.O3645_CODTIP = mccliente.O3647_CODTIP
+          --                                 AND tipo_subtipo.O3646_CODSTIP = mccliente.O3647_CODSTIP
+          --             ) g
+          --             -- where dimensao_eni is not null
+          --             GROUP BY ALL
+          --     ) mc
+
+          --     left join (select distinct zcliente,COD_PERS from curated_internal_mainframe_estruturais.tat01_clientes where DATA_DATE_PART =:ref_date_dutil) tat01
+          --     on mc.cod_pers = tat01.COD_PERS 
+              
+          -- ) t12
+          -- on lpad(t12.zcliente,10,'0') = t1.ccliente 
+
+      left join
+      (select  dwt060.ccliente,dwt060.dsit_prop,dwt060.ctipo_prop,dwt060.csubtipo_prop,date_format(dwt060.dsit_prop,'yyyyMM') as cmes_sit_prop, ( case 
+                        when CTIPO_PROP='PCC' and trim(CSUBTIPO_PROP) = '*' then '1'
+                        when CSUBTIPO_PROP in ('PEPENOV','PNGNOV') then '1'
+                        when coalesce(trim(CSUBTIPO_PROP),'') <> '' then '2' end) AS GSUBTIPO_PROP,
+            case 
+                when dwt060.CSIT_PROP in ('PCC6',	'PCH6',	'PEL6',	'PEP6',	'PNG6',	'PNL6',	'PPM6',	'PCCZ',	'PELZ',	'PEPZ',	'PNGZ','PNLZ','PPMZ') then	'6'
+                when dwt060.CSIT_PROP in ('PCC2',	'PCH2',	'PEL2',	'PEP2',	'PNG2',	'PNL2',	'PPM2') then	'2'
+                when dwt060.CSIT_PROP in ('PCC4',	'PEL4',	'PEP4',	'PNG4',	'PNL4',	'PPM4',	'PCC7',	'PCH7',	'PEL7',	'PEP7',	'PNG7','PPM7') then	'1'
+                when dwt060.CSIT_PROP in ('PELA',	'PEPA',	'PNGA',	'PNLA',	'PCCA',	'PCHA',	'PPMA',	'PCC1',	'PCH1',	'PEL1',	'PEP1','PNG1',	'PNL1',	'PPM1',	'PCC0',	
+                'PCH0',	'PEL0',	'PEP0',	'PNG0',	'PNL0',	'PPM0',	'PCCV',	'PCHV',	'PELV',	'PEPV',	'PNGV',	'PNLV',	'PPMV',	
+                'PELX',	'PEPX',	'PNGX',	'PCCD',	'PCHD',	'PELD',	'PEPD',	'PNGD',	'PNLD',	'PPMD',	'PCCI',	'PCHI',	'PELI',	'PEPI',	'PNGI',	
+                'PNLI',	'PPMI',	'PCC9',	'PCH9',	'PCCC',	'PCHC',	'PELC',	'PEPC',	'PNGC',	'PNLC',	'PPMC') then	'5'
+                when dwt060.CSIT_PROP in ('PCC3',	'PCH3',	'PEL3',	'PEP3',	'PNG3',	'PNL3',	'PNLN',	'PPM3') then	'4'
+                when dwt060.CSIT_PROP in ('PCC5',	'PCH5',	'PEL5',	'PEP5',	'PNG5',	'PNL5',	'PPM5') then	'3'
+                else '7' 
+            end AS ESTADO_PROPOSTA  
+        from
+          (select * from production.curated_internal_datawarehouse_dw.dwt060_proposta
+          where data_date_part = :ref_date_dutil) dwt060
+        inner join 
+          (select * , (case
+                      when MIT97_CELEDEP like ('AI08%') then 'C' 
+                      when MIT97_CELEDEP like ('SO04%') then 'D' 
+                      end) AS ICD
+          from production.curated_internal_mainframe_mis.mit97 
+          where data_date_part = :ref_date_dutil and (MIT97_CELEDEP LIKE 'AI08%' or MIT97_CELEDEP LIKE 'SO04%')) mit97 
+          on concat(mit97.MIT97_CPRODUTO,mit97.MIT97_CSUBPROD) = dwt060.CSUBPRODUTO
+        left join
+          (select * from production.curated_internal_mainframe_estruturais.tat91_tabelas
+          where data_date_part = :ref_date_dutil and TAYD91C0_CTABELA = '951' and upper(TAYD91C0_GELEMTAB) like 'ANULADA%AUTOMATIC%') tat91
+          on tat91.TAYD91C0_CELEMTAB = dwt060.CSIT_PROP
+          where mit97.icd = 'C' and tat91.TAYD91C0_CELEMTAB is null  -- and ccliente = '7402589788'
+          QUALIFY ROW_NUMBER() OVER (PARTITION BY CCLIENTE, CMES_SIT_PROP ORDER BY ESTADO_PROPOSTA,dsit_prop asc) = 1
+
+      ) t13 on t13.ccliente = t1.ccliente and t1.cmes = t13.cmes_sit_prop
+      -- LEFT JOIN
+      -- (with dwt002 as ( select dwt002.* from(
+      --               select 
+      --                cconta, ccliente, min(CRELACAO_CL_CNT) as CRELACAO_CL_CNT,CSEQUENCIA_REL,DINI_RELACAO,DFIM_RELACAO 
+      --               from curated_internal_datawarehouse_dw.dwt002_rl_clcnt where data_date_part = :ref_date_dutil group by 1,2,4,5,6 having CRELACAO_CL_CNT = '1' and DINI_RELACAO is not null
+      --               ) dwt002
+      --               left join (select concat(TRIM(CKBALCAO),TRIM(CKNUMCTA)) as cconta from curated_internal_mainframe_emprestimos.gpt21_processos where ZVERSAO = '999' and data_date_part = :ref_date_dutil)gpt21
+      --               on dwt002.cconta = gpt21.cconta
+      --               where gpt21.cconta is null
+      --           )
+      --     select t1.ccliente,t2.dini_relacao_titularidade,t1.dabertura_cliente
+      --     from
+      --     (
+      --         select dwt001.CCLIENTE,dwt001.DABERTURA_CLIENTE,dwt002.CCONTA, dwt002.CRELACAO_CL_CNT, dwt002.CSEQUENCIA_REL,dwt002.DINI_RELACAO, dwt002.DFIM_RELACAO
+      --         from (select * from curated_internal_datawarehouse_dw.dwt001_cliente
+      --         where data_date_part = :ref_date_dutil and ITIP_CLI = 'F') dwt001
+      --         inner join dwt002 on dwt002.ccliente = dwt001.ccliente) t1
+      --     left join
+      --     (select   t1.ccliente,t1.dabertura_cliente,
+      --               (min(case 
+      --                 when t1.CRELACAO_CL_CNT='1' 
+      --                 and not(t2.ICARTAO_PREPAGO='S') 
+      --                 and not (t2.ICARTAO_EMPRESA='S' ) 
+      --                 then t1.DINI_RELACAO end)) AS DINI_RELACAO_TITULARIDADE
+      --     from(
+      --         select dwt001.CCLIENTE,dwt001.DABERTURA_CLIENTE,dwt002.CCONTA, dwt002.CRELACAO_CL_CNT, dwt002.CSEQUENCIA_REL,dwt002.DINI_RELACAO, dwt002.DFIM_RELACAO
+      --         from (select * from curated_internal_datawarehouse_dw.dwt001_cliente
+      --         where data_date_part = :ref_date_dutil and ITIP_CLI = 'F') dwt001
+      --         inner join dwt002 on dwt002.ccliente = dwt001.ccliente) t1
+
+      --     inner join (
+      --         select   dwt002.cconta,
+      --                 /* ICARTAO_PREPAGO */
+      --                   (MAX(case when dwt008.CSUBPRODUTO like '025%' then 'S' else 'N' end)) AS ICARTAO_PREPAGO, 
+      --                 /* ICARTAO_EMPRESA */
+      --                   (MAX(case 
+      --                   when (dwt008.CSUBPRODUTO like '010%' or dwt008.CSUBPRODUTO like '011%')
+      --                   and dwt002.CSEQUENCIA_REL='00000' and dwt001.ITIP_CLI='J'
+      --                   then 'S' else 'N' end
+      --                   )) AS ICARTAO_EMPRESA 
+      --       from dwt002
+      --       inner join (select * from curated_internal_datawarehouse_dw.dwt001_cliente where data_date_part = :ref_date_dutil) dwt001 on 
+      --       dwt001.ccliente = dwt002.ccliente
+      --       inner join (select cconta,csubproduto from curated_internal_datawarehouse_dw.dwt008_conta_contrato group by 1,2 ) dwt008 on dwt008.cconta = dwt002.cconta
+      --       left join  (select * from curated_internal_datawarehouse_dmmarketingautomation.matd024_produto where data_date_part = :ref_date_dutil) matd24 on matd24.CPRODMIS = dwt008.CSUBPRODUTO
+      --       group by 1) t2 on t1.cconta = t2.cconta
+      --       group by 1,2) t2 on t1.ccliente = t2.ccliente
+      --       ) t14 ON T1.CCLIENTE = T14.CCLIENTE
+        --  left join
+        --     (select ccligrupo,SUM(t2.VCOMISSOES_mes) AS VCOMISSOES ,SUM(t2.VMARGEM_mes) AS VMARGEMF ,SUM(t2.VPB_mes)  AS PB,SUM(t2.CMA)  AS VCOMISSOES_ACUM ,SUM(t2.MFA) AS VMARGEMF_ACUM,SUM(t2.PBA) AS PB_ACUM
+        --     from(select * from workbench_aa.bi_base_cliente where cmes = :cmes) t1
+        --     left join(
+        --       SELECT
+        --           act.ZCLIENTE,
+        --           act.CMES,
+        --           act.MFA,
+        --           act.CMA,
+        --           act.PBA,
+              
+        --           prev.MFA AS MFA_ANT,
+        --           prev.CMA AS CMA_ANT,
+        --           prev.PBA AS PBA_ANT,
+              
+        --           /* ---- VMARGEM_MES ---- */
+        --           CASE
+        --               WHEN right(act.CMES,2) = '01' THEN act.MFA
+        --               WHEN prev.CMES IS NULL THEN act.MFA
+        --               ELSE act.MFA - coalesce(prev.MFA,0)
+        --           END AS VMARGEM_MES,
+              
+        --           /* ---- VCOMISSOES_MES ---- */
+        --           CASE
+        --               WHEN right(act.CMES,2) = '01' THEN act.CMA
+        --               WHEN prev.CMES IS NULL THEN act.CMA
+        --               ELSE act.CMA - coalesce(prev.CMA,0)
+        --           END AS VCOMISSOES_MES,
+              
+        --           /* ---- VPB_MES ---- */
+        --           CASE
+        --               WHEN right(act.CMES,2) = '01' THEN act.PBA
+        --               WHEN prev.CMES IS NULL THEN act.PBA
+        --               ELSE act.PBA - coalesce(prev.PBA,0)
+        --           END AS VPB_MES
+              
+        --       FROM  workbench_cdo.teste_jg act
+
+        --       LEFT JOIN workbench_cdo.teste_jg prev
+        --           ON  act.ZCLIENTE = prev.ZCLIENTE
+        --           AND prev.CMES = date_format(add_months(to_date(act.CMES || '01','yyyyMMdd'), -1), 'yyyyMM')
+              
+        --       ORDER BY act.ZCLIENTE, act.CMES
+        --       )t2 on t2.zcliente = t1.ccliente and t2.cmes = t1.cmes
+        --       GROUP by 1
+        --       ) t15 on t1.ccligrupo = t15.ccligrupo
+        --     left join
+        --       ( select distinct cmes_analise,ccligrupo,ctip_cli,sum(pb) as pb12M from
+        --          (select t1.cmes as cmes_analise, t1.ccligrupo, t1.ctip_cli,t1.cmes, 0 as vmeses_desde_analise, coalesce(t1.pb,0) as pb
+        --         from(
+        --               select ccligrupo,t1.cmes,ctip_cli,SUM(t2.VCOMISSOES_mes) AS VCOMISSOES ,SUM(t2.VMARGEM_mes) AS VMARGEMF ,SUM(t2.VPB_mes)  AS PB,SUM(t2.CMA)  AS VCOMISSOES_ACUM ,SUM(t2.MFA) AS VMARGEMF_ACUM,SUM(t2.PBA) AS PB_ACUM
+        --             from(select * from workbench_aa.bi_base_cliente where cmes = :cmes) t1
+        --             left join(
+        --               SELECT
+        --                   act.ZCLIENTE,
+        --                   act.CMES,
+        --                   act.MFA,
+        --                   act.CMA,
+        --                   act.PBA,
+                      
+        --                   prev.MFA AS MFA_ANT,
+        --                   prev.CMA AS CMA_ANT,
+        --                   prev.PBA AS PBA_ANT,
+                      
+        --                   /* ---- VMARGEM_MES ---- */
+        --                   CASE
+        --                       WHEN right(act.CMES,2) = '01' THEN act.MFA
+        --                       WHEN prev.CMES IS NULL THEN act.MFA
+        --                       ELSE act.MFA - coalesce(prev.MFA,0)
+        --                   END AS VMARGEM_MES,
+                      
+        --                   /* ---- VCOMISSOES_MES ---- */
+        --                   CASE
+        --                       WHEN right(act.CMES,2) = '01' THEN act.CMA
+        --                       WHEN prev.CMES IS NULL THEN act.CMA
+        --                       ELSE act.CMA - coalesce(prev.CMA,0)
+        --                   END AS VCOMISSOES_MES,
+                      
+        --                   /* ---- VPB_MES ---- */
+        --                   CASE
+        --                       WHEN right(act.CMES,2) = '01' THEN act.PBA
+        --                       WHEN prev.CMES IS NULL THEN act.PBA
+        --                       ELSE act.PBA - coalesce(prev.PBA,0)
+        --                   END AS VPB_MES
+                      
+        --               FROM  workbench_cdo.teste_jg act
+
+        --               LEFT JOIN workbench_cdo.teste_jg prev
+        --                   ON  act.ZCLIENTE = prev.ZCLIENTE
+        --                   AND prev.CMES = date_format(add_months(to_date(act.CMES || '01','yyyyMMdd'), -1), 'yyyyMM')
+                      
+        --               ORDER BY act.ZCLIENTE, act.CMES
+        --               )t2 on t2.zcliente = t1.ccliente and t2.cmes = t1.cmes
+        --               GROUP by 1,2,3
+        --               ) t1
+        --               where t1.ctip_cli = 'J'
+        --         UNION all
+        --           SELECT t2.cmes as cmes_analise, t2.ccligrupo, t2.ctip_cli,t3.cmes, floor(months_between(to_date(t3.cmes,'yyyyMM'), to_date(t2.cmes,'yyyyMM'))) as vmeses_desde_analise, coalesce(t3.pb,0) as pb
+        --           FROM (
+        --               select ccligrupo,t1.cmes,ctip_cli,SUM(t2.VCOMISSOES_mes) AS VCOMISSOES ,SUM(t2.VMARGEM_mes) AS VMARGEMF ,SUM(t2.VPB_mes)  AS PB,SUM(t2.CMA)  AS VCOMISSOES_ACUM ,SUM(t2.MFA) AS VMARGEMF_ACUM,SUM(t2.PBA) AS PB_ACUM
+        --             from(select * from workbench_aa.bi_base_cliente where cmes = :cmes) t1
+        --             left join(
+        --               SELECT
+        --                   act.ZCLIENTE,
+        --                   act.CMES,
+        --                   act.MFA,
+        --                   act.CMA,
+        --                   act.PBA,
+                      
+        --                   prev.MFA AS MFA_ANT,
+        --                   prev.CMA AS CMA_ANT,
+        --                   prev.PBA AS PBA_ANT,
+                      
+        --                   /* ---- VMARGEM_MES ---- */
+        --                   CASE
+        --                       WHEN right(act.CMES,2) = '01' THEN act.MFA
+        --                       WHEN prev.CMES IS NULL THEN act.MFA
+        --                       ELSE act.MFA - coalesce(prev.MFA,0)
+        --                   END AS VMARGEM_MES,
+                      
+        --                   /* ---- VCOMISSOES_MES ---- */
+        --                   CASE
+        --                       WHEN right(act.CMES,2) = '01' THEN act.CMA
+        --                       WHEN prev.CMES IS NULL THEN act.CMA
+        --                       ELSE act.CMA - coalesce(prev.CMA,0)
+        --                   END AS VCOMISSOES_MES,
+                      
+        --                   /* ---- VPB_MES ---- */
+        --                   CASE
+        --                       WHEN right(act.CMES,2) = '01' THEN act.PBA
+        --                       WHEN prev.CMES IS NULL THEN act.PBA
+        --                       ELSE act.PBA - coalesce(prev.PBA,0)
+        --                   END AS VPB_MES
+                      
+        --               FROM  workbench_cdo.teste_jg act
+
+        --               LEFT JOIN workbench_cdo.teste_jg prev
+        --                   ON  act.ZCLIENTE = prev.ZCLIENTE
+        --                   AND prev.CMES = date_format(add_months(to_date(act.CMES || '01','yyyyMMdd'), -1), 'yyyyMM')
+                      
+        --               ORDER BY act.ZCLIENTE, act.CMES
+        --               )t2 on t2.zcliente = t1.ccliente and t2.cmes = t1.cmes
+        --               GROUP by 1,2,3
+        --               ) t2
+        --               INNER JOIN workbench_aa.bi_dim_cliente t3 on t2.ccligrupo = t3.ccligrupo
+        --               where t2.ctip_cli = 'J' and t2.ctip_cli = t3.ctip_cli and t2.cmes <> t3.cmes and floor(months_between(to_date(t3.cmes,'yyyyMM'), to_date(t2.cmes,'yyyyMM'))) BETWEEN -11 AND -1
+        --           )t1
+        --             GROUP by 1,2,3
+        --         ) t16 on t1.ccligrupo = t16.ccligrupo and t1.cmes = t16.cmes_analise and t1.ctip_cli = t16.ctip_cli
+                left join (
+                  select t1.CMES, t1.CCLIENTE, t1.CCLIGRUPO, t1.CTIP_CLI, t4.CCLIENTE_ESP,t1.icli_selecionado,
+                  (case when t1.CTIP_CLI = 'F' and t4.CTIPO in ('PA','NP','PP') then case when upper(t2.TAYD91C0_GELEMTAB) like '%PROXIMO%' or t2.TAYD91C0_CELEMTAB  in('5561','5577','5565','5566','5569','5578','5579','7254','7255','5571','5572','5573','5562','5563','5564','5574','5575','5567','5568','5570','7252') then 'PRX'          
+                              when t3.CFUNC_ENCARTEIRAMENTO = 'AP' then 'GSE'
+                              when t3.CFUNC_ENCARTEIRAMENTO='AF' then 'GSE'
+                              else 'PPA' end
+                              end) as cmodelo_servico
+                  from (select * from workbench_aa.bi_base_cliente where cmes = :cmes) t1
+                  left join (select * from curated_internal_mainframe_estruturais.tat91_tabelas where TAYD91C0_CTABELA = '091'
+                  and data_date_part = '2026-04-09'
+                  ) t2 on t2.TAYD91C0_CELEMTAB = t1.CBALCLI
+                  left join (SELECT
+                              t1.CCLIENTE,
+                              t1.data_date_part,
+                              t1.CGESTOR_COM,
+                              MIN(CASE WHEN t2.CFUNCAO IN (21,26,32,86,87,88) THEN 'AF' ELSE t2.cfuncao END) AS CFUNC_ENCARTEIRAMENTO
+                            FROM (select ccliente,data_date_part,cgestor_Com from curated_internal_datawarehouse_dw.dwt176_cliente_marca 
+                             group by 1,2,3) t1
+                              LEFT JOIN (select CKGESTINC,CFUNCAO from curated_internal_datawarehouse_dw.dwt077_utilizador 
+                              group by 1,2
+                              -- where data_date_part = '2026-04-09'
+                              -- and DCANCEL > data_date_part
+                              ) t2 ON t1.CGESTOR_COM = t2.CKGESTINC 
+                              -- where t1.data_date_part = '2026-04-09'
+                            GROUP BY 1,2,3
+                            QUALIFY ROW_NUMBER() OVER (PARTITION BY t1.CCLIENTE ORDER BY t1.ccliente, t1.data_date_part DESC) = 1) t3 on t3.ccliente = t1.ccliente
+                    left join (SELECT CMES, CCLIENTE_ESP, CTIPO FROM production.curated_internal_datawarehouse_dmmarketingautomation.matf663_cli_vincul_m WHERE ICLI_SELECIONADO=1 
+                  AND (CCLIGRUPO <> '0001785966' AND CCLIENTE_ESP <> '5100135104')) t4 ON t1.CMES=t4.CMES AND t1.CCLIENTE_ESP=t4.CCLIENTE_ESP
+                
+                ) t17 on t1.cmes = t17.cmes and t1.ccligrupo = t17.ccligrupo and t17.icli_selecionado = 1
+
+                                    --substr(regexp_extract(t3.E0710_DOM_DESC_TEXT,'(\\d{7})[A-Za-z]+\\s*$',1),1,4)
+                      WHERE t1.ICLI_SELECIONADO = 1 
+                      GROUP by all
+                      ORDER BY CCLIGRUPO
+  
+      ) sim
+on base.CCLIGRUPO = sim.CCLIGRUPO
+and base.cmes = sim.cmes
+)
+
+select  
+-- ccligrupo_base,cmodelo_servico,cmodelo_servico_base
+-- flag_validacao_nfamilias,
+-- flag_validacao_churn_confirmado,
+-- flag_validacao_FLUXO_SEGMENTO_ENTRADA,
+-- flag_validacao_FLUXO_SEGMENTO_saida,
+-- flag_validacao_ativo_inativo,   
+-- flag_validacao_ieni,
+-- flag_validacao_estado_proposta,
+-- flag_validacao_GSUBTIPO_PROP,
+-- flag_validacao_dnovo_cliente,
+-- flag_validacao_vcomissoes,
+-- flag_validacao_vmargemf,
+-- flag_validacao_vcomissoes_acum,
+-- flag_validacao_pb_anualizado,
+flag_validacao_cmodelo_servico,
+count(*)
+from sim_dim_cliente_base a
+WHERE 1=1 
+-- and flag_validacao_churn_confirmado = 1 
+-- and flag_validacao_FLUXO_SEGMENTO_ENTRADA = 1
+-- and flag_validacao_FLUXO_SEGMENTO_saida = 1 
+-- and flag_validacao_ativo_inativo = 1
+-- and flag_validacao_ieni = 1
+-- and flag_validacao_estado_proposta = 1
+-- and flag_validacao_GSUBTIPO_PROP = 1
+-- and flag_validacao_dnovo_cliente = 1
+-- and flag_validacao_vcomissoes = 1
+-- and flag_validacao_vmargemf = 1
+-- and flag_validacao_pb = 1
+-- and flag_validacao_vcomissoes_acum = 1
+-- and flag_validacao_vmargemf_acum = 1
+-- and flag_validacao_pb_acum = 1
+-- and flag_validacao_pb_anualizado = 1 --and ccligrupo = '0005129576'
+-- and flag_validacao_cmodelo_servico = 1
+-- and icli_activo_base = 1
+group by 1
+-- limit 5
+
+;
+
+
