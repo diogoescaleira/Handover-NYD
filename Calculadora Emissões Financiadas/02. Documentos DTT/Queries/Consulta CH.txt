@@ -1,8 +1,0 @@
---Seleciona dados da ultima corrida
-
-select * from bu_esg_work.CH_Emissions where load_id = (select max(load_id) from bu_esg_work.CH_Emissions);
-
-
---Calcula total de emissoes produzidas
-
-select ref_date,description, load_id ,sum(financed_emissions) as Total_Financed_Emissions_CH, sum(calculated_emissions_building) as Total_Building_Emissions_CH from bu_esg_work.CH_Emissions group by ref_date,description,load_id;
