@@ -1,0 +1,121 @@
+/*******************************************************************************************************************************************
+****   Projeto: Certificação Bail-In                                                                          						    ****
+****   Autor: Neyond                                                                                                                    ****
+****   Data: 31/10/2025                                                                                                                 ****
+****   SQL Script Descrição: Simulação da Tabela LT006	     																		    ****
+********************************************************************************************************************************************
+/*=========================================================================================================================================*/
+/*  1. Tabela granular: Simulação da tabela LT006			                                                                  			   */
+/*=========================================================================================================================================*/
+
+INSERT OVERWRITE BU_CAPTOOLS_WORK.SIMUL_LT006_INSTR_PROT PARTITION (ID_CORRIDA, REF_DATE)
+
+
+SELECT DISTINCT 
+    LT002.INSTRMNT_ID
+    ,FR.CHAVE_MASTER
+    ,GT018.CHAVE_PROCESSO
+    ,GT018.TIPOLOGIA
+    ,GT018.PRTCTN_ID
+    ,GT018.PRTCTN_ALLCTD_VL
+	,RT.NEW_ID_CORRIDA AS ID_CORRIDA
+	,'${REF_DATE}' AS REF_DATE
+    
+FROM
+    (
+    SELECT INSTRMNT_ID
+    FROM BU_CAPTOOLS_WORK.SIMUL_LT002_INSTRUMENT
+    WHERE REF_DATE='${REF_DATE}' AND ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_CAPTOOLS_WORK.SIMUL_LT002_INSTRUMENT WHERE REF_DATE='${REF_DATE}')
+    -- AND NOME_PERIMETRO= 'Individual Local'
+    -- AND SEGMENTO= 'ESTR' 
+    -- AND AMBITO= 'SRB_MBDT'
+    -- AND ENTIDADE = '00100'
+    ) LT002
+ 
+INNER JOIN
+    (
+    SELECT DISTINCT 
+    CONCAT (CEMPRESA_FR, CBALCAO_FR, CNUMECTA_FR, ZDEPOSIT_FR) AS CHAVE_FINREP
+    ,CONCAT (CEMPRESA, CBALCAO, CNUMECTA, ZDEPOSIT) AS CHAVE_MASTER
+    FROM CD_CAPTOOLS.KT_CHAVES_FINREP
+    WHERE REF_DATE='${REF_DATE}'
+    ) FR 
+    ON LT002.INSTRMNT_ID = FR.CHAVE_FINREP
+ 
+INNER JOIN 
+    (
+    SELECT 
+    CONCAT (CEMPRESP, CKBALRES, CKCTARES, CKREFRESP) AS CHAVE_MASTER
+    ,CONCAT (CEMPRESA, CKBALCAO, CKNUMCTA, COMP_ID_GAR) AS CHAVE_PROCESSO
+    ,TIPOLOGIA
+    ,CONCAT(SUBSTRING(TIPOLOGIA,1,1),'_',CKBALBEM,'_',CKCTABEM,'_',CKREFBEM) AS PRTCTN_ID
+    ,CAST(SUM(MAVALIAA) AS DECIMAL(21,2)) AS PRTCTN_ALLCTD_VL
+    FROM CD_GARANTIAS.GT018_RATEIO_AVAL
+    WHERE REF_DATE='${REF_DATE}' AND TIPOLOGIA = 'PES'
+    GROUP BY 1,2,3,4
+    ) GT018 
+    ON FR.CHAVE_MASTER = GT018.CHAVE_MASTER
+		
+LEFT JOIN
+	(
+	SELECT NVL(MAX(ID_CORRIDA),0)+1 AS NEW_ID_CORRIDA
+	FROM BU_CAPTOOLS_WORK.SIMUL_LT006_INSTR_PROT
+	WHERE REF_DATE = '${REF_DATE}'
+	) RT 
+	ON 1=1 
+
+
+
+/*=========================================================================================================================================*/
+/*  AUX. Criação da tabela                                                                             			                           */
+/*=========================================================================================================================================*/
+
+CREATE TABLE BU_CAPTOOLS_WORK.SIMUL_LT006_INSTR_PROT
+(  
+	INSTRMNT_ID STRING
+	,CHAVE_MASTER STRING
+	,CHAVE_PROCESSO STRING
+	,TIPOLOGIA STRING
+	,PRTCTN_ID STRING
+	,PRTCTN_ALLCTD_VL DECIMAL(21,2)
+)
+PARTITIONED BY (ID_CORRIDA BIGINT, REF_DATE STRING);
+
+
+
+
+
+/*=========================================================================================================================================*/
+/*  AUX. VALIDAÇÕES                                                                             			                           */
+/*=========================================================================================================================================*/
+
+
+SELECT 
+    A.INSTRMNT_ID AS INSTID_SIMUL,
+    B.INSTRMNT_ID AS INSTID_IT,
+    A.PRTCTN_ID AS GT_SIMUL,
+    B.PRTCTN_ID AS GT_IT,
+    A.PRTCTN_ALLCTD_VL AS VALUE_SIMUL,
+    B.PRTCTN_ALLCTD_VL AS VALUE_IT,
+    A.PRTCTN_ALLCTD_VL-B.PRTCTN_ALLCTD_VL AS DIF
+FROM 
+    (
+    SELECT *
+    FROM BU_CAPTOOLS_WORK.SIMUL_LT006_INSTR_PROT
+    ) A
+FULL JOIN
+    (
+    SELECT *
+    FROM BU_LOANTAPE_WORK.LT006_INSTR_PROT
+    WHERE REF_DATE='${REF_DATE}'
+    AND NOME_PERIMETRO= 'Individual Local'
+    AND SEGMENTO= 'ESTR' 
+    AND AMBITO= 'SRB_MBDT'
+    AND ENTIDADE = '00100'
+    ) B
+    ON A.PRTCTN_ID=B.PRTCTN_ID AND A.INSTRMNT_ID=B.INSTRMNT_ID
+HAVING DIF IS NULL OR A.INSTRMNT_ID IS NULL OR B.INSTRMNT_ID IS NULL
+
+
+
+

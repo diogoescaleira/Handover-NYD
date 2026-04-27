@@ -1,0 +1,235 @@
+/*******************************************************************************************************************************************
+****   Projeto: Certificação Bail-In                                                                          						    ****
+****   Autor: Neyond                                                                                                                    ****
+****   Data: 17/12/2025                                                                                                                 ****
+****   SQL Script Descrição: Simulação da Tabela LT003      																		    ****
+********************************************************************************************************************************************
+/*=========================================================================================================================================*/
+/*  1. Tabela granular: Simulação da tabela LT003                                                                    			   */
+/*=========================================================================================================================================*/
+
+INSERT OVERWRITE BU_CAPTOOLS_WORK.SIMUL_LT003_ENTITY PARTITION (ID_CORRIDA, REF_DATE)
+SELECT * 
+
+FROM (
+	SELECT 
+        -- FLG_INTR_RSLTN_GRP,
+        -- FLG_INTRGRP,
+        
+		CASE --CNTRPRTY_RSLTN_GRP: campo novo (6/11 não concluído)
+			WHEN UNIV.ENTTY_ID = '0000000000' THEN 'No'
+			WHEN AUX_FLAGS_INTR.FLG_INTRGRP = '1' AND AUX_FLAGS_INTR.FLG_INTR_RSLTN_GRP = '1' THEN 'Intragroup and intra-resolution group'
+			WHEN AUX_FLAGS_INTR.FLG_INTRGRP = '1' AND AUX_FLAGS_INTR.FLG_INTR_RSLTN_GRP = '0' THEN 'Intragroup but not intra-resolution group'
+			WHEN AUX_FLAGS_INTR.FLG_INTRGRP = '0' THEN 'No'
+			ELSE 'Not applicable'
+		END AS CNTRPRTY_RSLTN_GRP 
+		
+		,CASE 
+			WHEN ITIP_CLI = 'J' THEN 'L'
+			WHEN ITIP_CLI = 'F' THEN 'N'
+			WHEN ITIP_CLI IS NULL THEN 'MISS'
+		END AS PRSN_TYP
+			
+		,CASE -- campo já existente (6/11 não concluído) - CAMPO OK NA LT
+			WHEN CT003.ENTTY_NM = 'MISS' OR TRIM(CT003.ENTTY_NM)='' THEN ''
+			WHEN CT003.ENTTY_NM IS NULL THEN 'MISS'
+			ELSE CT003.ENTTY_NM
+		END AS ENTTY_NM 
+		 
+		,CASE -- alterado conforme especificação e regras LT804
+			WHEN UNIV.ENTTY_ID = '0000000000' 						THEN 'Not applicable'
+			WHEN CT003.CLEI = '#' AND AUX_1A.CLEI_GRUPO_AUX1A = '#' THEN 'Not applicable'
+			WHEN CT003.CLEI IN ('') 								THEN ''	    
+		    ELSE AUX_1A.CLEI_GRUPO_AUX1A
+		END AS LEI
+
+		,UNIV.ENTTY_ID -- campo já existente (6/11 não concluído) -- CAMPO OK NA LT
+
+		,CASE -- campo novo (6/11 não concluído)
+			WHEN TRIM(INTRNL_SGMNT) = 'outras instituicoes financeiras' AND TRIM(CT003.INSTITUTIONAL_SECTOR) IN ('Insurance corporations', 'Pension funds')	THEN 'Insurance firms & pension funds'
+			WHEN TRIM(INTRNL_SGMNT) = 'outras instituicoes financeiras' 																					THEN 'Other financial corporations'
+			WHEN TRIM(INTRNL_SGMNT) = 'outras empresas nao financeiras' AND TRIM(SME.ENTRPRS_SZ_LE) IN ('2', '3', '4')										THEN 'Micro & SME'
+			WHEN TRIM(INTRNL_SGMNT) = 'outras empresas nao financeiras' AND TRIM(SME.ENTRPRS_SZ_LE) = '1'													THEN 'Corporates'
+			WHEN TRIM(INTRNL_SGMNT) = 'outras empresas nao financeiras'																						THEN 'Corporates'
+			WHEN TRIM(INTRNL_SGMNT) = 'particulares'																										THEN 'Households'
+			WHEN TRIM(INTRNL_SGMNT) = 'instituicoes de credito'																								THEN 'Institutions'
+			WHEN TRIM(INTRNL_SGMNT) IN ('setor publico', 'bancos centrais')																					THEN 'Government, central banks & supranationals'
+			ELSE 'Non identified, not listed on an exchange platform'
+		END AS CNTRPRTY_TYP 
+
+		,CASE 
+			WHEN CT003.CPAIS_RESIDENCIA = '724' 	THEN 'ES'
+			WHEN CT003.CPAIS_RESIDENCIA = '076' 	THEN 'BR'
+			WHEN CT003.CPAIS_RESIDENCIA = '620' 	THEN 'PT'
+			WHEN CT003.CPAIS_RESIDENCIA IS NULL		THEN 'MISS'
+		END AS CNTRY -- campo já existente (6/11 não concluído) - OK NA LT
+		
+		,RT.NEW_ID_CORRIDA AS ID_CORRIDA
+
+		,'${REF_DATE}' AS REF_DATE
+		
+	FROM 
+		(
+		SELECT DISTINCT ENTTY_ID 
+		FROM BU_LOANTAPE_WORK.LT003_ENTITY
+		WHERE REF_DATE = '${REF_DATE}' 
+			AND AMBITO = 'SRB_MBDT'
+			AND SEGMENTO = 'ESTR'
+			AND NOME_PERIMETRO = 'Individual Local'
+			AND ENTIDADE = '00100'
+		) UNIV
+
+	LEFT JOIN
+		(
+		SELECT 
+			ZCLIENTE as ENTTY_ID, 
+			GCLIENTE AS ENTTY_NM,
+			CLEI,
+			ITIP_CLI,			
+			CCLI_GRUPO, 
+			CONTRAPARTE AS INTRNL_SGMNT, 
+			CSECTOR_INST AS INSTITUTIONAL_SECTOR,
+			CPAIS_RESIDENCIA
+		FROM CD_CAPTOOLS.CT003_UNIV_CLI 
+		WHERE REF_DATE = '${REF_DATE}' 
+		) CT003
+		ON CT003.ENTTY_ID = UNIV.ENTTY_ID
+
+	LEFT JOIN 
+		(
+		SELECT * 
+		FROM    
+			(
+			SELECT *, RANK() OVER (PARTITION BY CCLI_GRUPO_AUX1A ORDER BY CLEI_GRUPO_AUX1A DESC) AS RANK_AUX1A
+			FROM
+				(
+				SELECT DISTINCT TRIM(CCLI_GRUPO) AS CCLI_GRUPO_AUX1A
+				,TRIM(CLEI) AS CLEI_GRUPO_AUX1A
+				FROM CD_CAPTOOLS.CT003_UNIV_CLI
+				WHERE REF_DATE = '${REF_DATE}'
+					AND ORIGEM = 'AUT'
+					AND TRIM(CLEI) NOT IN ('')
+				)AUX
+			)AUX_TRAT WHERE RANK_AUX1A=1
+		)AUX_1A 
+		ON CT003.CCLI_GRUPO=AUX_1A.CCLI_GRUPO_AUX1A	
+		
+	LEFT JOIN
+		(
+		SELECT
+		    ENTTY_ID,
+		    CASE
+			    WHEN ZCLIENTE IS NOT NULL THEN '1'
+			    ELSE '0'
+		    END AS FLG_INTRGRP,
+		    CASE
+		        WHEN FLG_INTR_RSLTN_GRP IS NULL THEN '0'
+		        ELSE FLG_INTR_RSLTN_GRP
+		   END AS FLG_INTR_RSLTN_GRP     
+        
+        FROM
+        	    (
+	    SELECT DISTINCT ENTTY_ID 
+		FROM BU_LOANTAPE_WORK.LT003_ENTITY
+		WHERE REF_DATE = '${REF_DATE}' 
+			AND AMBITO = 'SRB_MBDT'
+			AND SEGMENTO = 'ESTR'
+			AND NOME_PERIMETRO = 'Individual Local'
+			AND ENTIDADE = '00100' 
+		)UNIV_AUX
+		
+		LEFT JOIN
+            (
+	        SELECT ZCLIENTE,
+		    CASE
+			-- ZCLIENTES QUE FAZEM PARTE DO GRUPO DE RESOLUÇÃO:
+			WHEN ZCLIENTE IN ('7401276246','2101832415','7401276238','5100615216','5100699767','5100717593','5100684455','2100182850','9000934899','5100004040',
+							'8026132050','8023435976','2100365686','8026132103','4161000485','8022901967','8020907322','8020904991','8022902017','8020904989',
+							'8023435952','7400416401','8020905003','8040985296','8023009859','8023011295','8023009896','5100006155','5100564511','5100512458',
+							'5100010918','8007220122','5100262318','6511003209','6511003239','0000241876','8020904643','2100150281','2101452047','3461001806',
+							'8037849269','0000238954','7400416227','7400738881','7401054355','7402622925','8029370785','0000068304','2100707445','0000072653',
+							'5100262397','8017167384','9002156093','9001047530','9002348311','8000763422','7400066405','5100722449','8008162891','8038365328',
+							'3701008785','8044901277','0000083631','0000041875','9001792290','9001882712','0000000324','9000724942','2100168615','7400731809',
+							'0000065343','2100171912','9000699338','5100011001','7400930664','2100022282','0000190045','7400416354','9000889284','0000003686',
+							'9002525987','3801006002','6511000960','8046370062','6511000004','1700007406','8000176115','8000176024','2100229809','8000000013',
+							'8016377292','7400122168','8000001856','8003987621','3801002891','7400576806','1700210720','5100015093','5100000125','9000796656',
+							'8000003403','5100005155','5100409969','5100620316','7401390483','5100006999','3471008280','7401393942','2101355138','7400315551',
+							'7400760971','5100000130','7402335893','6511000079','8030049790','7400987939','7400574280','7400987911','7400615058','7400574283',
+							'7400615062','8045281854','9002337488','3461004226','3801001696','8046536611','8046260881','3801007386','7400939384','0000054615',
+							'7400762179','7400762184','7400013485','9001910086','8040315059','9002544629','7400456469','1700212510','8046593067','5100016269',
+							'5100302047','7401175518','5100619128','2100609921','5100008388','9000591057','5100688151','5100669816','7400685089','8046268247',
+							'6511000031','7402467009','7402283234','7401192097','8040594155','9002520878','0000215806','5100269822','7400420263','5100000263',
+							'8046273535','5100654045','7402148282','7400886823','9002304663','0000033240','8044900121','3801007646','8027624846','8045905242',
+							'8019204890','9001044109','3801000226','7401170514','5100603940','5100007933','7401951317','9002687384','8046435297','3801002808',
+							'7400416333','9001349956','0000235696','7400419150','3461009525','8046556500','9002657754','7400376332','8027891356','7400632601',
+							'5100006919','5100008510','7400874676','8041353494','9002512140','7402114618','5100008182','5100013603','7400772356','7402750262',
+							'7400416297','5100009460','8037938734','7402784168','5100008018','7400416325','1700136358','0000026320','8006964954','9002544619',
+							'8046386217','5100727684','5100596466','0000046859','6511000214','5100665602','8041492238','9002358453','4161000611','8046077493',
+							'1700121866','9001911423','8000391312','1700079420','5100006736','7400781266','0000002716','2100170655','8000941336','9000618919',
+							'5100261093','7400223681','3481003857') THEN '1'
+			ELSE '0'
+		END AS FLG_INTR_RSLTN_GRP
+			
+		FROM
+			(
+			SELECT *
+			FROM CD_CAPTOOLS.CLIENTES_INTRAGRUPO 
+			WHERE DATA_DATE_PART = '${REF_DATE}'
+			) INTRAGRUPO 
+			
+		INNER JOIN	
+			(
+			SELECT *
+			FROM CD_CAPTOOLS.PERIMETRO	
+			WHERE DATA_DATE_PART = '${REF_DATE}' 
+			AND ESPANHA_IFRS IN ('x', 'B')
+			) PERIMETRO 
+			ON INTRAGRUPO.CONSOLES = PERIMETRO.COD_ESPANA
+		) AUX_CNTRPRTY_RSLTN_GRP ON UNIV_AUX.ENTTY_ID = AUX_CNTRPRTY_RSLTN_GRP.ZCLIENTE
+	) AUX_FLAGS_INTR ON AUX_FLAGS_INTR.ENTTY_ID  = UNIV.ENTTY_ID
+		
+	
+	LEFT JOIN
+		(
+		SELECT ZCLIENTE, 
+			CASE 
+				WHEN COD_EMPR_PME=0 THEN '1' 
+				WHEN COD_EMPR_PME=1 THEN '4' 
+				WHEN COD_EMPR_PME=2 THEN '3' 
+				WHEN COD_EMPR_PME=3 THEN '2' 
+			END AS ENTRPRS_SZ_LE
+		FROM BU_CAPTOOLS_WORK.MBDT_OUT_SME_2003_361
+		) SME
+		ON SME.ZCLIENTE = UNIV.ENTTY_ID
+		
+	LEFT JOIN
+		(
+		SELECT NVL(MAX(ID_CORRIDA),0)+1 AS NEW_ID_CORRIDA
+		FROM BU_CAPTOOLS_WORK.SIMUL_LT003_ENTITY
+		WHERE REF_DATE = '${REF_DATE}'
+		) RT 
+		ON 1=1 
+    
+	) FINAL
+	ORDER BY ENTTY_ID;
+	
+	
+	
+
+/*=========================================================================================================================================*/
+/*  AUX. Criação da tabela                                                                             			                           */
+/*=========================================================================================================================================*/
+
+CREATE TABLE BU_CAPTOOLS_WORK.SIMUL_LT003_ENTITY
+(  
+	CNTRPRTY_RSLTN_GRP STRING
+	,PRSN_TYP STRING
+	,ENTTY_NM STRING
+	,LEI STRING
+	,ENTTY_ID STRING
+	,CNTRPRTY_TYP STRING
+	,CNTRY STRING
+	,ID_CORRIDA NUMERIC
+	,REF_DATE STRING
+)
+PARTITIONED BY (ID_CORRIDA BIGINT, REF_DATE STRING);

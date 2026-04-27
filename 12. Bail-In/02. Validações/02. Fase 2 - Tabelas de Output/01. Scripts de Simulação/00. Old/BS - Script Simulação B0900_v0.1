@@ -1,0 +1,257 @@
+/*******************************************************************************************************************************************
+****   Projeto: Certificação Bail-In                                                                          						    ****
+****   Autor: Neyond                                                                                                                    ****
+****   Data: 11/11/2025                                                                                                                 ****
+****   SQL Script Descrição: Simulação da Tabela B9000    																			    ****
+********************************************************************************************************************************************
+/*=========================================================================================================================================*/
+/*  1. Tabela granular: Simulação da tabela B09000                                                                                         */
+/*=========================================================================================================================================*/
+
+
+--31641600005800007PTCPP0AM0007000
+
+INSERT OVERWRITE BU_CAPTOOLS_WORK.SIMUL_B9000_COUNTERPARTIES PARTITION (ID_CORRIDA, REF_DATE)
+
+SELECT         
+CAST(ROW_NUMBER() OVER (ORDER BY `0011_tab_origin`, `0020_UNIQ_ID_KNWN_CNTRPRTY`) AS INT) AS `0010_ROW_NMBR` --ok
+,*
+FROM (
+	SELECT
+	
+	`0011_TAB_ORIGIN` --ok
+
+	,CASE --ok
+		WHEN UNIVERSO.`0011_TAB_ORIGIN` = 'B0200' THEN CAMPOS_B0200.`0030_UNIQ_ID_KNWN_CNTRPRTY`
+		WHEN UNIVERSO.`0011_TAB_ORIGIN` = 'B0500' THEN CAMPOS_B0500.`0020_UNIQ_ID_GUARANTEE_AUX`
+	END AS `0020_UNIQ_ID_KNWN_CNTRPRTY`
+
+	,CASE --ok
+		WHEN CAMPOS_LT003.ENTTY_ID_LT003 = '0000000000' THEN 'No'
+		ELSE CAMPOS_LT003.CNTRPRTY_RSLTN_GRP
+	END AS `0030_CNTRPRTY_RSLTN_GRP`
+
+	,CASE --ok
+		WHEN CAMPOS_LT003.ENTTY_ID_LT003 <> '0000000000' OR CAMPOS_LT003.PRSN_TYP <> 'N' THEN CAMPOS_LT003.ENTTY_NM
+		ELSE 'Not applicable'
+	END AS `0040_CNTRPRTY_NM`
+	
+	,CASE --ok
+		WHEN CAMPOS_LT003.ENTTY_ID_LT003 =  '0000000000' 	                	THEN 'Not applicable'
+		WHEN CAMPOS_LT003.LEI = 'N/A' 							                THEN 'Not applicable'
+		WHEN TRIM(CAMPOS_LT003.LEI) <> '' OR TRIM(CAMPOS_LT003.LEI) <> 'N/A'    THEN CAMPOS_LT003.LEI
+		WHEN TRIM(CAMPOS_LT003.LEI) = '' OR TRIM(CAMPOS_LT003.LEI) = 'N/A'      THEN CAMPOS_LT003.ENTTY_ID_LT003
+	END AS `0050_CNTRPRTY_LEI`
+	
+	,CASE --ok
+		WHEN CAMPOS_LT003.ENTTY_ID_LT003 =  '0000000000'                        THEN 'Not applicable'
+		WHEN TRIM(CAMPOS_LT003.LEI) <> '' OR TRIM(CAMPOS_LT003.LEI) <> 'N/A'    THEN 'LEI'
+		WHEN TRIM(CAMPOS_LT003.LEI) = '' OR TRIM(CAMPOS_LT003.LEI) = 'N/A'      THEN 'Internal identifier'
+	END AS `0060_TYP_CNTRPRTY_ID`
+	
+	,CASE --ok
+		WHEN CAMPOS_LT003.ENTTY_ID_LT003 =  '0000000000'        THEN 'Not applicable'
+		WHEN UNIVERSO.`0011_TAB_ORIGIN` = 'B0200'	            THEN CAMPOS_LT003.ENTTY_ID_LT003
+		WHEN UNIVERSO.`0011_TAB_ORIGIN` = 'B0500' 	            THEN LT004.PRTCTN_PRVDR_ID
+	END AS `0070_CNTRPRTY_ID`
+		
+	,CASE --Rever se está bem a condição da entidade de ajuste '0000000000'	
+		WHEN CAMPOS_LT003.ENTTY_ID_LT003 = '0000000000' THEN 'Non identified, not listed on an exchange platform'
+		ELSE CNTRPRTY_TYP
+	END AS `0080_CNTRPRTY_TYP` 
+		
+	,CASE
+		WHEN CAMPOS_LT003.ENTTY_ID_LT003 = '0000000000'     THEN '99' -- ALTERAR PARA 'XX'?
+		WHEN CAMPOS_LT003.ENTTY_ID_LT003 <> '0000000000'    THEN CAMPOS_LT003.CNTRY
+	END AS `0090_CNTRY_CNTRPRTY`
+	
+	,CAST(CASE --ok
+		WHEN UNIVERSO.`0011_TAB_ORIGIN` = 'B0200'   THEN LT005.OTSTNDNG_PRNCPL_AMNT-LT005.PRTN_AMNT_RPRTNG_ENTTY+(-1*LT005.ACCRD_INTRST_INSTRMNT) --REVER A ESPECIFICAÇÃO
+		WHEN UNIVERSO.`0011_TAB_ORIGIN` = 'B0500' 	THEN LT006.PRTCTN_ALLCTD_VL
+	END AS DECIMAL(21,2)) AS `0100_RLVNT_AMNT_WDC`
+	
+	,RT.NEW_ID_CORRIDA AS ID_CORRIDA
+	
+	,'${REF_DATE}' AS REF_DATE
+
+	FROM 
+		(
+		SELECT DISTINCT
+			`0020_UNIQ_ID` AS ID,
+			'B0200' AS `0011_TAB_ORIGIN`
+		FROM BU_CAPTOOLS_WORK.SIMUL_B0200
+		WHERE REF_DATE = '${REF_DATE}' AND ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_CAPTOOLS_WORK.SIMUL_B0200 WHERE REF_DATE = '${REF_DATE}' )
+		
+		UNION ALL 
+		SELECT DISTINCT
+			`0020_UNIQ_ID_GUARANTEE` AS ID,
+			'B0500' AS `0011_TAB_ORIGIN`
+		FROM BU_LOANTAPE_WORK.OUT_B0500_GUARANTEES
+		WHERE REF_DATE = '${REF_DATE}' 
+		) UNIVERSO
+
+	LEFT JOIN
+		(
+		SELECT DISTINCT
+			`0020_UNIQ_ID` AS `0020_UNIQ_ID_AUX`,
+			`0030_UNIQ_ID_KNWN_CNTRPRTY` -- CAMPO A REPORTAR NO MAPA
+		FROM BU_CAPTOOLS_WORK.SIMUL_B0200
+		WHERE REF_DATE = '${REF_DATE}' AND ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_CAPTOOLS_WORK.SIMUL_B0200 WHERE REF_DATE = '${REF_DATE}' )
+		) CAMPOS_B0200
+		ON UNIVERSO.ID = CAMPOS_B0200.`0020_UNIQ_ID_AUX`
+
+	LEFT JOIN
+		(
+		SELECT DISTINCT
+			`0020_UNIQ_ID_GUARANTEE` AS `0020_UNIQ_ID_GUARANTEE_AUX`
+		FROM BU_LOANTAPE_WORK.OUT_B0500_GUARANTEES
+		WHERE REF_DATE = '${REF_DATE}'
+		)CAMPOS_B0500
+		ON UNIVERSO.ID = CAMPOS_B0500.`0020_UNIQ_ID_GUARANTEE_AUX`
+
+	LEFT JOIN
+		(
+		SELECT DISTINCT
+			ENTTY_ID AS ENTTY_ID_LT005,
+			INSTRMNT_ID AS INSTRMNT_ID_LT005,
+			CAST(OTSTNDNG_PRNCPL_AMNT AS DECIMAL(21,2)) AS OTSTNDNG_PRNCPL_AMNT,
+			CAST(PRTN_AMNT_RPRTNG_ENTTY AS DECIMAL(21,2)) AS PRTN_AMNT_RPRTNG_ENTTY,
+			CAST(ACCRD_INTRST_INSTRMNT AS DECIMAL(21,2)) AS ACCRD_INTRST_INSTRMNT
+		FROM BU_CAPTOOLS_WORK.SIMUL_LT005_INSTR_ENT
+		WHERE REF_DATE = '${REF_DATE}'
+			-- AND AMBITO = 'SRB_MBDT'
+			-- AND NOME_PERIMETRO = 'Individual Local'
+			-- AND SEGMENTO = 'ESTR'
+			-- AND ENTIDADE = '00100'
+			AND ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_CAPTOOLS_WORK.SIMUL_LT005_INSTR_ENT WHERE REF_DATE = '${REF_DATE}' )
+		)LT005
+		ON LT005.INSTRMNT_ID_LT005 = UNIVERSO.ID OR LT005.INSTRMNT_ID_LT005 = SUBSTR(UNIVERSO.ID,1,32)
+
+	LEFT JOIN
+		(
+		SELECT 
+			ENTTY_ID AS ENTTY_ID_LT003,
+			ENTTY_NM,
+			PRSN_TYP,
+			LEI,
+			CNTRY,
+			CNTRPRTY_RSLTN_GRP,
+			CNTRPRTY_TYP
+		FROM BU_CAPTOOLS_WORK.SIMUL_LT003_ENTITY
+		WHERE REF_DATE = '${REF_DATE}' AND ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_CAPTOOLS_WORK.SIMUL_LT003_ENTITY WHERE REF_DATE = '${REF_DATE}' )
+		)CAMPOS_LT003
+		ON ENTTY_ID_LT003 = ENTTY_ID_LT005
+
+	LEFT JOIN
+		(
+		SELECT 
+			INSTRMNT_ID AS INSTRMNT_ID_LT006,
+			PRTCTN_ID AS PRTCTN_ID_LT006,
+			PRTCTN_ALLCTD_VL,
+			CONCAT(INSTRMNT_ID, PRTCTN_ID) AS CHAVE_LT006_AUX
+		FROM BU_LOANTAPE_WORK.LT006_INSTR_PROT
+		WHERE REF_DATE = '${REF_DATE}'
+			AND AMBITO = 'SRB_MBDT'
+			AND NOME_PERIMETRO = 'Individual Local'
+			AND SEGMENTO = 'ESTR'
+			AND ENTIDADE = '00100'
+		)LT006
+		ON UNIVERSO.ID = LT006.CHAVE_LT006_AUX
+
+	LEFT JOIN
+		(
+		SELECT 
+			PRTCTN_ID,
+			PRTCTN_PRVDR_ID,
+			CAST(PRTCTN_PRVDR_ID AS DECIMAL(21,2)) AS PRTCTN_PRVDR_ID_NUM
+		FROM BU_LOANTAPE_WORK.LT004_PROTECTION
+		WHERE REF_DATE = '${REF_DATE}'
+			AND AMBITO = 'SRB_MBDT'
+			AND NOME_PERIMETRO = 'Individual Local'
+			AND SEGMENTO = 'ESTR'
+			AND ENTIDADE = '00100'
+		)LT004
+		ON LT004.PRTCTN_ID = LT006.PRTCTN_ID_LT006 
+
+	LEFT JOIN
+		(
+		SELECT NVL(MAX(ID_CORRIDA),0)+1 AS NEW_ID_CORRIDA
+		FROM BU_CAPTOOLS_WORK.simul_b9000_counterparties
+		WHERE REF_DATE = '${REF_DATE}'
+		)RT 
+		ON 1=1 
+
+	) B9000
+;
+
+
+
+
+
+/*=========================================================================================================================================*/
+/*  AUX. Criação da tabela                                                                             			                           */
+/*=========================================================================================================================================*/
+
+CREATE TABLE BU_CAPTOOLS_WORK.SIMUL_B9000_counterparties
+(  
+	0010_ROW_NMBR INT,
+	0011_TAB_ORIGIN STRING,
+	0020_UNIQ_ID_KNWN_CNTRPRTY STRING,
+	0030_CNTRPRTY_RSLTN_GRP STRING,
+	0040_CNTRPRTY_NM STRING,
+	0050_CNTRPRTY_LEI STRING,
+	0060_TYP_CNTRPRTY_ID STRING,
+	0070_CNTRPRTY_ID STRING,
+	0080_CNTRPRTY_TYP STRING, 
+	0090_CNTRY_CNTRPRTY STRING, 
+	0100_RLVNT_AMNT_WDC DECIMAL(21,2)
+)
+PARTITIONED BY (ID_CORRIDA BIGINT, REF_DATE STRING);
+
+
+-- AUXILIARES
+SELECT *
+FROM bu_loantape_work.out_b0500_guarantees
+WHERE REF_DATE = '2025-09-30'
+; --5769
+
+SELECT * 
+FROM bu_loantape_work.lt003_entity
+WHERE  REF_DATE = '2025-09-30'
+and entty_id = '0000003686';
+
+SELECT *
+from bu_loantape_work.lt004_protection
+where ref_date = '2025-09-30';
+
+SELECT *
+FROM bu_loantape_work.lt005_instr_ent
+WHERE REF_DATE = '2025-09-30';
+
+SELECT *
+FROM bu_loantape_work.lt006_instr_prot
+WHERE REF_DATE = '2025-09-30';
+
+SELECT *
+FROM bu_loantape_work.out_b9000_counterparties
+WHERE REF_DATE = '2025-09-30'
+AND `0011_tab_origin` = 'B0200';
+
+SELECT *
+FROM bu_loantape_work.lt004_protection
+WHERE REF_DATE = '2025-09-30';
+
+SELECT count(*)
+from bu_loantape_work.out_b9000_counterparties
+where ref_date = '2025-09-30';
+
+SELECT * FROM BU_CAPTOOLS_WORK.SIMUL_LT003_ENTITY;
+
+    SELECT 
+        *
+    FROM BU_LOANTAPE_WORK.LT004_PROTECTION
+    WHERE REF_DATE = '${REF_DATE}'
+        AND AMBITO = 'SRB_MBDT'
+        AND NOME_PERIMETRO = 'Individual Local'
+        AND SEGMENTO = 'ESTR'
+        AND ENTIDADE = '00100';

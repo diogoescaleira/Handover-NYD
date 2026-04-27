@@ -1,0 +1,196 @@
+/*******************************************************************************************************************************************
+****   Projeto: Certificação Bail-In                                                                          						    ****
+****   Autor: Neyond                                                                                                                    ****
+****   Data: 12/12/2025                                                                                                                 ****
+****   SQL Script Descrição: Simulação da Tabela B9000    																			    ****
+********************************************************************************************************************************************
+/*=========================================================================================================================================*/
+/*  1. Tabela granular: Simulação da tabela B09000                                                                                         */
+/*=========================================================================================================================================*/
+
+INSERT OVERWRITE BU_CAPTOOLS_WORK.SIMUL_B9000_COUNTERPARTIES PARTITION (ID_CORRIDA, REF_DATE)
+
+SELECT * FROM (
+SELECT         
+CAST(ROW_NUMBER() OVER (ORDER BY `0011_tab_origin`, `0020_UNIQ_ID_KNWN_CNTRPRTY`, `0070_CNTRPRTY_ID`) AS INT) AS `0010_ROW_NMBR`
+,*
+FROM 
+	(
+	SELECT
+	
+	`0011_TAB_ORIGIN` 
+
+	,CASE 
+		WHEN UNIVERSO.`0011_TAB_ORIGIN` = 'B0200' THEN B0200.`0030_UNIQ_ID_KNWN_CNTRPRTY`
+		WHEN UNIVERSO.`0011_TAB_ORIGIN` = 'B0500' THEN UNIVERSO.ID
+	END AS `0020_UNIQ_ID_KNWN_CNTRPRTY`
+
+	,CASE 
+		WHEN LT003.ENTTY_ID = '0000000000' THEN 'No'
+		ELSE LT003.CNTRPRTY_RSLTN_GRP
+	END AS `0030_CNTRPRTY_RSLTN_GRP`
+
+	,CASE 
+		WHEN LT003.ENTTY_ID = '0000000000' THEN  'Not applicable'
+		WHEN LT003.ENTTY_ID <> '0000000000' AND LT003.PRSN_TYP <> 'N' THEN LT003.ENTTY_NM
+		ELSE 'Not applicable'
+	END AS `0040_CNTRPRTY_NM`
+	
+	,CASE 
+		WHEN LT003.ENTTY_ID =  '0000000000' 	                	    THEN 'Not applicable'
+		WHEN TRIM(LT003.LEI) <> '' OR TRIM(LT003.LEI) <> 'N/A'          THEN LT003.LEI
+		WHEN TRIM(LT003.LEI) = '' OR TRIM(LT003.LEI) = 'N/A'            THEN LT003.ENTTY_ID
+	END AS `0050_CNTRPRTY_LEI`
+	
+	,CASE 
+		WHEN LT003.ENTTY_ID =  '0000000000'                                 THEN 'Not applicable'
+		WHEN TRIM(LT003.LEI) <> '' OR TRIM(LT003.LEI) <> 'N/A'              THEN 'LEI'
+		WHEN TRIM(LT003.LEI) = '' OR TRIM(LT003.LEI) = 'N/A'                THEN 'Internal identifier'
+	END AS `0060_TYP_CNTRPRTY_ID`
+	
+	,CASE 
+		WHEN LT003.ENTTY_ID =  '0000000000'                     THEN 'Not applicable'
+		WHEN UNIVERSO.`0011_TAB_ORIGIN` = 'B0200'	            THEN LT003.ENTTY_ID
+		WHEN UNIVERSO.`0011_TAB_ORIGIN` = 'B0500' 	            THEN LT004.PRTCTN_PRVDR_ID
+	END AS `0070_CNTRPRTY_ID`
+		
+	,CASE 
+		WHEN LT003.ENTTY_ID = '0000000000' THEN 'Non identified, not listed on an exchange platform'
+		ELSE CNTRPRTY_TYP
+	END AS `0080_CNTRPRTY_TYP` 
+		
+	,CASE
+		WHEN LT003.ENTTY_ID = '0000000000'      THEN '99' 
+		WHEN LT003.ENTTY_ID <> '0000000000'     THEN LT003.CNTRY
+	END AS `0090_CNTRY_CNTRPRTY`
+	
+	,CAST(CASE
+		WHEN UNIVERSO.`0011_TAB_ORIGIN` = 'B0200'   THEN LT005.OTSTNDNG_PRNCPL_AMNT-LT005.PRTN_AMNT_RPRTNG_ENTTY+(-1*LT005.ACCRD_INTRST_INSTRMNT) --REVER A ESPECIFICAÇÃO
+		WHEN UNIVERSO.`0011_TAB_ORIGIN` = 'B0500' 	THEN LT006.PRTCTN_ALLCTD_VL
+	END AS DECIMAL(21,2)) AS `0100_RLVNT_AMNT_WDC`
+	
+	,RT.NEW_ID_CORRIDA AS ID_CORRIDA
+	
+	,'${REF_DATE}' AS REF_DATE
+	
+	FROM 
+		(
+		SELECT 
+			`0020_UNIQ_ID` AS ID,
+			'B0200' AS `0011_TAB_ORIGIN`
+		FROM BU_CAPTOOLS_WORK.SIMUL_B0200
+		WHERE REF_DATE = '${REF_DATE}' AND ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_CAPTOOLS_WORK.SIMUL_B0200 WHERE REF_DATE = '${REF_DATE}' )
+		
+		UNION ALL 
+		SELECT 
+			`0020_UNIQ_ID_GUARANTEE` AS ID,
+			'B0500' AS `0011_TAB_ORIGIN`
+		FROM BU_CAPTOOLS_WORK.SIMUL_B0500
+		WHERE REF_DATE = '${REF_DATE}' AND ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_CAPTOOLS_WORK.SIMUL_B0500 WHERE REF_DATE = '${REF_DATE}' )
+		) UNIVERSO
+		
+	LEFT JOIN
+		(
+		SELECT 
+			`0020_UNIQ_ID` AS `0020_UNIQ_ID_AUX`,
+			`0030_UNIQ_ID_KNWN_CNTRPRTY` -- CAMPO A REPORTAR NO MAPA PARA OS REGISTOS DO B0200
+		FROM BU_CAPTOOLS_WORK.SIMUL_B0200
+		WHERE REF_DATE = '${REF_DATE}' AND ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_CAPTOOLS_WORK.SIMUL_B0200 WHERE REF_DATE = '${REF_DATE}' )
+		) B0200
+		ON UNIVERSO.ID = B0200.`0020_UNIQ_ID_AUX` AND `0011_TAB_ORIGIN` = 'B0200' 
+
+-- B200: INSTRMNT_ID E ENTTY_ID		
+		LEFT JOIN 
+		(
+		SELECT
+			ENTTY_ID,
+			INSTRMNT_ID,
+			CAST(OTSTNDNG_PRNCPL_AMNT AS DECIMAL(21,2)) AS OTSTNDNG_PRNCPL_AMNT,
+			CAST(PRTN_AMNT_RPRTNG_ENTTY AS DECIMAL(21,2)) AS PRTN_AMNT_RPRTNG_ENTTY,
+			CAST(ACCRD_INTRST_INSTRMNT AS DECIMAL(21,2)) AS ACCRD_INTRST_INSTRMNT
+		FROM BU_CAPTOOLS_WORK.SIMUL_LT005_INSTR_ENT
+		WHERE REF_DATE = '${REF_DATE}'
+		AND ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_CAPTOOLS_WORK.SIMUL_LT005_INSTR_ENT WHERE REF_DATE = '${REF_DATE}')
+		)LT005
+		ON LT005.INSTRMNT_ID = UNIVERSO.ID AND `0011_TAB_ORIGIN` = 'B0200'
+		
+-- B500: PRTCTN_ID E PRTCTN_PRVDR_ID
+	LEFT JOIN
+		(
+		SELECT
+			PRTCTN_ID,
+			PRTCTN_PRVDR_ID
+		FROM BU_CAPTOOLS_WORK.SIMUL_LT004
+		WHERE REF_DATE = '${REF_DATE}'
+		AND ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_CAPTOOLS_WORK.SIMUL_LT004 WHERE REF_DATE = '${REF_DATE}')
+		)LT004
+		ON LT004.PRTCTN_ID = SUBSTR(UNIVERSO.ID,33,34) AND `0011_TAB_ORIGIN` = 'B0500'
+		
+--CAMPOS DA TABELA LT003
+	LEFT JOIN
+		(
+		SELECT 
+			ENTTY_ID,
+			ENTTY_NM,
+			PRSN_TYP,
+			LEI,
+			CNTRY,
+			CNTRPRTY_RSLTN_GRP,
+			CNTRPRTY_TYP
+		FROM BU_CAPTOOLS_WORK.SIMUL_LT003_ENTITY
+		WHERE REF_DATE = '${REF_DATE}' AND ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_CAPTOOLS_WORK.SIMUL_LT003_ENTITY WHERE REF_DATE = '${REF_DATE}' )
+		)LT003
+		ON LT003.ENTTY_ID = 
+			CASE 
+				WHEN `0011_TAB_ORIGIN` = 'B0200' THEN LT005.ENTTY_ID
+				WHEN `0011_TAB_ORIGIN` = 'B0500' THEN LT004.PRTCTN_PRVDR_ID
+			END
+			
+--CAMPOS DA TABELA LT006
+	LEFT JOIN
+		(
+		SELECT
+			INSTRMNT_ID AS INSTRMNT_ID_LT006,
+			PRTCTN_ID AS PRTCTN_ID_LT006,
+			PRTCTN_ALLCTD_VL,
+			CONCAT(INSTRMNT_ID, PRTCTN_ID) AS CHAVE_LT006_AUX
+		FROM BU_CAPTOOLS_WORK.SIMUL_LT006_INSTR_PROT
+		WHERE REF_DATE = '${REF_DATE}' AND ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_CAPTOOLS_WORK.SIMUL_LT006_INSTR_PROT WHERE REF_DATE = '${REF_DATE}' )
+		)LT006 
+		ON UNIVERSO.ID = LT006.CHAVE_LT006_AUX
+
+--PARTIÇÃO TEMPORAL
+	LEFT JOIN
+		(
+		SELECT NVL(MAX(ID_CORRIDA),0)+1 AS NEW_ID_CORRIDA
+		FROM BU_CAPTOOLS_WORK.simul_b9000_counterparties
+		WHERE REF_DATE = '${REF_DATE}'
+		)RT 
+		ON 1=1 
+
+	) B9000
+
+WHERE `0100_RLVNT_AMNT_WDC` != 0 
+
+)FINAL 
+;
+
+/*=========================================================================================================================================*/
+/*  AUX. Criação da tabela                                                                             			                           */
+/*=========================================================================================================================================*/
+
+CREATE TABLE BU_CAPTOOLS_WORK.SIMUL_B9000_counterparties
+(  
+	0010_ROW_NMBR INT,
+	0011_TAB_ORIGIN STRING,
+	0020_UNIQ_ID_KNWN_CNTRPRTY STRING,
+	0030_CNTRPRTY_RSLTN_GRP STRING,
+	0040_CNTRPRTY_NM STRING,
+	0050_CNTRPRTY_LEI STRING,
+	0060_TYP_CNTRPRTY_ID STRING,
+	0070_CNTRPRTY_ID STRING,
+	0080_CNTRPRTY_TYP STRING, 
+	0090_CNTRY_CNTRPRTY STRING, 
+	0100_RLVNT_AMNT_WDC DECIMAL(21,2)
+)
+PARTITIONED BY (ID_CORRIDA BIGINT, REF_DATE STRING);
