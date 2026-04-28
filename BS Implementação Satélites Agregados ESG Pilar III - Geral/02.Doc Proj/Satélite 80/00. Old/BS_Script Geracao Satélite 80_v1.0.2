@@ -1,0 +1,169 @@
+/********************************************************************************************************************************************
+****   Projeto: Implementação Satélites Corporativos                                                                     				 ****
+****   Autor: Bs & Neyond                                                                                                                ****
+****   Data: 29/04/2025                                                                                                                  ****
+****   Sql Script Descrição: Geração Do Satélite 80  																					 ****
+********************************************************************************************************************************************/
+
+/*=========================================================================================================================================*/
+/*  1. Tabela granular: obtenção do universo a reportar no âmbito do satélite 80 + marcação de metricas relevantes         			       */
+/*=========================================================================================================================================*/
+
+--DROP TABLE IF EXISTS BU_ESG_WORK.AG080_ENPC_CTO_GRA;
+--CREATE TABLE BU_ESG_WORK.AG080_ENPC_CTO_GRA AS
+SELECT 
+	A.*,
+	B.`13_GROSS_CARRYING_AMOUNT`,
+	B.CKBALBEM,	
+	B.CKCTABEM,
+	B.CKREFBEM,
+	B.EPC,	
+	B.QUALITY_SCORE,
+	B.CONSUMOS,
+	-- B.EMISIONES,
+	CASE
+		-- WHEN TRIM(B.FIABILIDAD) IN ('7-SIN DATO', NULL) THEN 'EPSD3'
+		-- WHEN TRIM(B.FIABILIDAD) = '7-SIN DATO' OR B.FIABILIDAD IS NULL THEN 'EPSD3'
+		WHEN B.CONSUMOS IS NULL THEN 'EPSD3'
+		ELSE 'EPSD2' -- QUANDO HOUVER UMA NOVA TABELA COM AS FIABILIDADES DE CONSUMO TEMOS DE DESDOBRAR ISTO EM CONDIÇÕES COMO CONSUMO REAL E ESTIMADO
+	END AS EP_SCORE_DATA, -- CONSUMOS ATUALMENTE VÊM TODOS DA GLOVAL POR ISSO SÃO TODOS ESTIMADOS --PASSAMOS A TER HIPÓTESE DE TER CONSUMOS REAIS (EPSD1)	
+	CASE 
+		WHEN B.CONSUMOS <= 100 THEN 'EPSC1'
+		WHEN B.CONSUMOS > 100 AND B.CONSUMOS <= 200 THEN 'EPSC2'
+		WHEN B.CONSUMOS > 200 AND B.CONSUMOS <= 300 THEN 'EPSC3'
+		WHEN B.CONSUMOS > 300 AND B.CONSUMOS <= 400 THEN 'EPSC4'
+		WHEN B.CONSUMOS > 400 AND B.CONSUMOS <= 500 THEN 'EPSC5'
+		WHEN B.CONSUMOS > 500 THEN 'EPSC6'
+		ELSE 'EPSC7'
+	END AS EP_SCORE,	
+	CASE WHEN QUALITY_SCORE  IN ('1-REAL', 'SANTANDER') THEN 'EPCD1'
+		 WHEN QUALITY_SCORE IN ('2-MUY ALTA', '3-ALTA', '4-MEDIA', '5-MEDIA BAJA', '6-BAJA') THEN 'EPCD2'
+		 ELSE 'EPCD3'
+	END AS EP_LABEL_DATA,
+	CASE
+		WHEN TRIM(B.EPC) LIKE 'A%' THEN 'EPCL1'
+		WHEN TRIM(B.EPC) LIKE 'B%' THEN 'EPCL2'
+		WHEN TRIM(B.EPC) LIKE 'C%' THEN 'EPCL3'
+		WHEN TRIM(B.EPC) LIKE 'D%' THEN 'EPCL4'
+		WHEN TRIM(B.EPC) LIKE 'E%' THEN 'EPCL5'
+		WHEN TRIM(B.EPC) LIKE 'F%' THEN 'EPCL6'
+		WHEN TRIM(B.EPC) LIKE 'G%' THEN 'EPCL7'
+		ELSE 'EPCL8'
+	END AS EPC_LABEL, 
+	CASE                                                    
+		WHEN B.COUNTRY_CODE IN ('276', '040',  '056', '100', '196', '191', '208','705', '724',  '233','246', '250','300','348','372','380', '440', '442',  '470', '616', '620', '203','703', '642', '752', '528', '428')
+			THEN 'EU1'
+		WHEN B.COUNTRY_CODE NOT IN ('276', '040',  '056', '100', '196', '191', '208','705', '724',  '233','246', '250','300','348','372','380', '440', '442',  '470', '616', '620', '203','703', '642', '752', '528', '428', '')
+			THEN 'EU2'
+		WHEN B.CPAIS_RESIDENCIA IN ('276', '040',  '056', '100', '196', '191', '208','705', '724',  '233','246', '250','300','348','372','380', '440', '442',  '470', '616', '620', '203','703', '642', '752', '528', '428')
+			THEN 'EU1'
+		WHEN B.CPAIS_RESIDENCIA NOT IN ('276', '040',  '056', '100', '196', '191', '208','705', '724',  '233','246', '250','300','348','372','380', '440', '442',  '470', '616', '620', '203','703', '642', '752', '528', '428','')
+			THEN 'EU2'
+	ELSE '' END AS EUROPEAN_UNION
+
+FROM 
+
+(
+	SELECT DISTINCT CEMPRESA_CT, CBALCAO_CT, CNUMECTA_CT, ZDEPOSIT_CT 
+	FROM BU_ESG_WORK.RF_PILAR3_UNIVERSO_FULL 
+	WHERE DT_RFRNC = '${REF_DATE}' AND 
+		  ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_ESG_WORK.RF_PILAR3_UNIVERSO_FULL WHERE DT_RFRNC = '${REF_DATE}') AND 
+		  CSATELITE IN (80) 
+) AS A
+
+LEFT JOIN  
+(
+	SELECT  
+	  GAR.CEMPRESA,
+	  GAR.CBALCAO,
+	  GAR.CNUMECTA,
+	  GAR.ZDEPOSIT,
+	  SUM(GAR.`13_GROSS_CARRYING_AMOUNT`) AS `13_GROSS_CARRYING_AMOUNT`,
+	  GAR.CKBALBEM, 
+	  GAR.CKCTABEM,
+	  GAR.CKREFBEM,
+	  GAR.CPAIS_RESIDENCIA, 
+	  CERT_ENERG.EPC, 
+	  CERT_ENERG.QUALITY_SCORE,
+	  CERT_ENERG.EP_SCORE AS CONSUMOS,
+	  PROPERTY.COUNTRY_CODE     
+	FROM
+	(
+		
+	SELECT *
+	FROM BU_ESG_WORK.P3_REPARTICAO_GARANTIAS
+	WHERE DT_RFRNC='${REF_DATE}'
+		AND ID_CORRIDA IN (SELECT MAX(ID_CORRIDA) FROM BU_ESG_WORK.P3_REPARTICAO_GARANTIAS WHERE DT_RFRNC = '${REF_DATE}') 
+
+	) GAR
+   
+ LEFT JOIN
+ -- LIGAÇÃO COM A TABELA PROPERTY PARA OBTENÇÃO DE CAMPOS CARACTERIZADORES DO BEM
+ (
+	  SELECT DISTINCT
+	   PROPERTY_BRANCH_CODE, 
+	   PROPERTY_CONTRACT_ID, 
+	   PROPERTY_REFERENCE_CODE,
+	   COUNTRY_CODE 
+	  FROM BUSINESS_ASSETS.PROPERTY
+	  WHERE DATA_DATE_PART = '${REF_DATE}'
+ ) PROPERTY 
+ --GAR.CEMPBEM = PROPERTY.PROPERTY_BANK_ID AND
+ GAR.CKBALBEM = PROPERTY.PROPERTY_BRANCH_CODE AND 
+ GAR.CKCTABEM = PROPERTY.PROPERTY_CONTRACT_ID AND
+ GAR.CKREFBEM = PROPERTY.PROPERTY_REFERENCE_CODE 
+
+LEFT JOIN
+-- LIGAÇÃO COM A TABELA PROPERTY_ENERGY_CERTIFICATE PARA OBTENÇÃO DE CAMPOS DE CERTIFICADOS ENERGÉTICOS
+ (
+  SELECT *
+  FROM BU_ESG_WORK.PROPERTY_ENERGY_CERTIFICATE
+  WHERE DATA_DATE_PART = '${REF_DATE}'
+ ) CERT_ENERG
+ --GAR.CEMPBEM = CERT_ENERG.PROPERTY_BANK_ID AND
+ GAR.CKBALBEM = CERT_ENERG.PROPERTY_BRANCH_CODE AND 
+ GAR.CKCTABEM = CERT_ENERG.PROPERTY_CONTRACT_ID AND
+ GAR.CKREFBEM = CERT_ENERG.PROPERTY_REFERENCE_CODE
+
+GROUP BY 
+  GAR.CEMPRESA,
+  GAR.CBALCAO,
+  GAR.CNUMECTA,
+  GAR.ZDEPOSIT,
+  GAR.CKBALBEM, 
+  GAR.CKCTABEM,
+  GAR.CKREFBEM,
+  GAR.CPAIS_RESIDENCIA, 
+  CERT_ENERG.EPC, 
+  CERT_ENERG.QUALITY_SCORE,
+  CERT_ENERG.EP_SCORE,
+  PROPERTY.COUNTRY_CODE     
+) AS B
+ON  A.CEMPRESA_CT = B.CEMPRESA_CT
+AND A.CBALCAO_CT  = B.CBALCAO_CT
+AND A.CNUMECTA_CT = B.CNUMECTA_CT
+AND A.ZDEPOSIT_CT = B.ZDEPOSIT_CT
+
+WHERE `13_GROSS_CARRYING_AMOUNT` IS NOT NULL
+;   
+
+/*=========================================================================================================================================*/
+/*  2. Tabela final: obtenção das métricas agregadas a reportar no âmbito do satélite 80                							       */
+/*=========================================================================================================================================*/
+
+-- DROP TABLE BU_ESG_WORK.AG080_ENPC_CTO_AGR;
+-- CREATE TABLE BU_ESG_WORK.AG080_ENPC_CTO_AGR AS
+SELECT       
+	CASE 
+		WHEN SOCIEDADE_CONTRAPARTE = '' THEN '00000'
+		ELSE SOCIEDADE_CONTRAPARTE
+	END AS COUNTERPARTY_SOC,
+	'BI00411' AS ADJUSTMENT_CODE,
+	CONCAT(IDCOMB_SATELITE,';',EP_SCORE_DATA,';',EP_SCORE,';',EP_LABEL_DATA,';',EPC_LABEL) AS COMB_CODE,
+	ROUND(-SUM(`13_GROSS_CARRYING_AMOUNT`),0) AS AMOUNT,
+	EUROPEAN_UNION AS EU 
+FROM BU_ESG_WORK.AG080_ENPC_CTO_GRA
+GROUP BY 1,2,3,5
+;
+
+

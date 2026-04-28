@@ -1,0 +1,15 @@
+SELECT  f1.nome_specific_sustainable,f2.SPECIFIC_SUSTAINABLe,count(*)--E--,f1.nome_specific_eligible,f2.SPECIFIC_ELIGIBLE,f1.nome_purpose_esg_alinh_tax,f2.PURPOSE_ESG
+FROM 
+    (
+    SELECT concat(cempresa,cbalcao,cnumecta,zdeposit) AS CHAVE_JUN25,nome_ctgr_sfics,nome_specific_sustainable,nome_specific_eligible,nome_purpose_esg_alinh_tax
+    --general_specific_purpose,purpose_esg,specific_eligible,specific_sustainable
+    FROM bu_esg_work.modesg_out_sfics_taxon_europeia
+    where ref_date='2025-06-30'
+    )F1
+inner JOIN 
+    (
+    SELECT distinct concat(cempresa_ct,cbalcao_ct,cnumecta_ct,zdeposit_ct) AS CHAVE_DEZ24,SPECIFIC_SUSTAINABLE,SPECIFIC_ELIGIBLE,PURPOSE_ESG
+    FROM bu_esg_work.pilar3_sat84_Dez24_tabaux6_v7
+    where csatelite=222
+    )F2 ON F1.CHAVE_JUN25=F2.CHAVE_DEZ24
+GROUP BY 1,2

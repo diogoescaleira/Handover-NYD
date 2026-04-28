@@ -1,0 +1,143 @@
+SELECT f1.*,  --DISTINCT score_enrg,origem_scp1_emss_imo
+    CASE 
+        -- WHEN F1.RANK_AUX<>1 THEN 'Relação Contrato-Bem duplicado'
+        WHEN F2.CHAVE IS NULL AND F3.CHAVE_CT004 IS NULL THEN 'Não consta na carteira a Dezembro 2024'
+        WHEN F2.CHAVE IS NULL THEN 'Sem relação entre Contrato e Bem' 
+        WHEN F2.origem_scp1_emss_imo='Nao Aplicavel' AND TRIM(F4.PROPERTY_PURPOSE_CODE)='06' THEN 'Estacionamento - Emissões calculadas ao nível do cliente'
+        WHEN F2.origem_scp1_emss_imo='Nao Aplicavel' AND TRIM(F4.PROPERTY_PURPOSE_CODE)='07' THEN 'Garagem - Emissões calculadas ao nível do cliente'
+        WHEN TRIM(F2.origem_scp1_emss_imo)='RE_DQS5_3' AND TRIM(F1.score_enrg) in ('3a') THEN 'Diferente Metodologia - Sem Área e Sem ienerg vs Com Área e Com EPC'
+        WHEN TRIM(F2.origem_scp1_emss_imo)='RE_DQS4_2B' AND TRIM(F1.score_enrg) in ('3a') THEN 'Diferente Metodologia - Com Área e Sem EPC vs Com Área e Com EPC'
+        WHEN TRIM(F2.origem_scp1_emss_imo)='RE_DQS4_2B' AND TRIM(F1.score_enrg) in ('4') THEN 'Metodologia Igual - Com Área e Sem EPC'
+
+        WHEN TRIM(F2.origem_scp1_emss_imo)='RE_DQS3_2A' AND TRIM(F1.score_enrg) in ('3a') THEN 'Metodologia Igual - Com Área e Com EPC'
+        WHEN TRIM(F2.origem_scp1_emss_imo)='RE_DQS3_2A' AND TRIM(F1.score_enrg) in ('4') THEN 'Diferente Metodologia - Com Área e Com EPC vs Com Área e Sem EPC'
+        WHEN TRIM(F2.origem_scp1_emss_imo)='RE_DQS5_3' AND TRIM(F1.score_enrg) in ('5','3') THEN 'Metodologia Igual - Sem Área e Sem EPC'
+        WHEN TRIM(F2.origem_scp1_emss_imo)='RE_DQS5_3' AND TRIM(F1.score_enrg) in ('4') THEN 'Diferente Metodologia - Sem Área e Sem EPC vs Com Área e Sem EPC'
+    END AS FLAG
+    ,CASE
+        WHEN F1.IENERG IS NOT NULL AND F5.EPC IS NOT NULL AND TRIM(F1.IENERG)=TRIM(F5.EPC) AND TRIM(F5.QUALITY_SCORE) IN ('1-REAL', 'SANTANDER') THEN 'EPC Igual - Real'
+        WHEN F1.IENERG IS NOT NULL AND F5.EPC IS NOT NULL AND TRIM(F1.IENERG)=TRIM(F5.EPC) AND TRIM(F5.QUALITY_SCORE) NOT IN ('1-REAL', 'SANTANDER') THEN 'EPC Igual - Estimado'
+        WHEN F1.IENERG IS NOT NULL AND F5.EPC IS NOT NULL AND TRIM(F1.IENERG)<>TRIM(F5.EPC) AND TRIM(F5.QUALITY_SCORE) IN ('1-REAL', 'SANTANDER') THEN 'EPC Diferente - Real'
+        WHEN F1.IENERG IS NOT NULL AND F5.EPC IS NOT NULL AND TRIM(F1.IENERG)<>TRIM(F5.EPC) AND TRIM(F5.QUALITY_SCORE) NOT IN ('1-REAL', 'SANTANDER') THEN 'EPC Diferente - Estimado'
+        WHEN F1.IENERG IS NOT NULL AND F5.EPC IS NULL THEN 'Sem EPC no Modelo'
+        WHEN F1.IENERG IS NULL AND F5.EPC IS not NULL AND TRIM(F5.QUALITY_SCORE) IN ('1-REAL', 'SANTANDER') THEN 'Sem EPC no Análise - Real'
+        WHEN F1.IENERG IS NULL AND F5.EPC IS not NULL AND TRIM(F5.QUALITY_SCORE) not IN ('1-REAL', 'SANTANDER') THEN 'Sem EPC no Análise - Estimado'
+    end as flag_epc
+    ,CASE
+        WHEN F1.AREA_UTIL IS NULL AND F4.NET_FLOOR_AREA IS NOT NULL then 'Sem área na Análise e Com área no Modelo'
+        WHEN F1.AREA_UTIL IS not NULL AND F4.NET_FLOOR_AREA IS NULL then  'Com área na Análise e Sem área no Modelo'
+        WHEN F1.AREA_UTIL IS NULL AND F4.NET_FLOOR_AREA IS NULL then 'Sem área'
+        WHEN F1.AREA_UTIL=F4.NET_FLOOR_AREA and F4.NET_FLOOR_AREA=0 THEN 'Área Igual - Zero'
+        WHEN F1.AREA_UTIL=F4.NET_FLOOR_AREA  THEN 'Área Igual'
+        WHEN F1.AREA_UTIL<>F4.NET_FLOOR_AREA and F4.NET_FLOOR_AREA=0 THEN 'Área diferente - Zero no Modelo'
+        WHEN F1.AREA_UTIL<>F4.NET_FLOOR_AREA THEN 'Área diferente'
+    end as flag_area
+    ,CASE 
+        WHEN F1.calculated_emissions_building is not null and F2.scp1_emss_imo is not null and abs(F1.calculated_emissions_building-F2.scp1_emss_imo)>0.1 THEN 'Fator de emissão diferente'
+        WHEN F1.calculated_emissions_building is not null and F2.scp1_emss_imo is not null and abs(F1.calculated_emissions_building-F2.scp1_emss_imo)<=0.1 THEN 'Fator de emissão igual'
+        WHEN F1.calculated_emissions_building is not null and F2.scp1_emss_imo is null then 'Sem fator de emissão no Modelo'
+        WHEN F1.calculated_emissions_building is null and F2.scp1_emss_imo is not null then 'Sem fator de emissão na Calculadora'
+        WHEN F1.calculated_emissions_building is null  and F2.scp1_emss_imo is null then 'Sem fator de emissão'
+    end as flag_fator_emiss
+    ,CASE 
+        WHEN F1.atribution_factor IS NOT NULL AND F2.ratio IS NOT NULL AND abs(F1.atribution_factor-F2.ratio)>0.1 THEN 'Rácio diferente'
+        WHEN F1.atribution_factor IS NOT NULL AND F2.ratio IS NOT NULL AND abs(F1.atribution_factor-F2.ratio)<=0.1 THEN 'Rácio igual'
+        WHEN F1.atribution_factor IS NOT NULL AND F2.ratio IS NULL  THEN 'Sem Rácio no Modelo'
+        WHEN F1.atribution_factor IS NULL AND F2.ratio IS NOT NULL  THEN 'Sem Rácio na Calculadora'
+        WHEN F1.atribution_factor IS NULL AND F2.ratio IS NULL then 'Sem Rácio'
+    end as flag_ratio
+    ,CASE
+        WHEN F2.sum_preco_aquisicao IS NOT NULL AND F6.PRECO_AQUI_SUM IS NOT NULL AND ABS(F2.sum_preco_aquisicao-F6.PRECO_AQUI_SUM)<=0.1 THEN 'Preço Aquisição Igual'
+        WHEN F2.sum_preco_aquisicao IS NOT NULL AND F6.PRECO_AQUI_SUM IS NOT NULL AND ABS(F2.sum_preco_aquisicao-F6.PRECO_AQUI_SUM)>0.1 THEN 'Preço Aquisição Diferente'
+        WHEN F2.sum_preco_aquisicao IS NOT NULL AND F6.PRECO_AQUI_SUM IS  NULL then 'Sem preço aquisição na Calculadora'
+        WHEN F2.sum_preco_aquisicao IS NULL AND F6.PRECO_AQUI_SUM IS not NULL then 'Sem preço aquisição no Modelo'
+        WHEN F2.sum_preco_aquisicao IS NULL AND F6.PRECO_AQUI_SUM IS NULL then 'Sem preço aquisição'
+    end as flag_preco_aqui
+    ,CASE
+        WHEN F2.AMOUNT_MUG IS NOT NULL AND F6.AMOUNT_CALC IS NOT NULL AND ABS(F2.AMOUNT_MUG+F6.AMOUNT_CALC)<=1 THEN 'Montante Igual'
+        WHEN F2.AMOUNT_MUG IS NOT NULL AND F6.AMOUNT_CALC IS NOT NULL AND ABS(F2.AMOUNT_MUG+F6.AMOUNT_CALC)>1 THEN 'Montante Diferente'
+        WHEN F2.AMOUNT_MUG IS NOT NULL AND F6.AMOUNT_CALC IS  NULL then 'Sem montante na Calculadora'
+        WHEN F2.AMOUNT_MUG IS NULL AND F6.AMOUNT_CALC IS not NULL then 'Sem montante no Modelo'
+        WHEN F2.AMOUNT_MUG IS NULL AND F6.AMOUNT_CALC IS NULL then 'Sem montante'
+    end as flag_MONTATE
+    ,scp1_emss_fncd
+    ,scp2_emss_fncd
+    ,-amount as montante
+
+
+    -- ,sum(financed_emissions) as sum_financed_emissions
+    -- ,sum(scp1_emss_fncd) as sum_scp1
+    -- ,sum(scp2_emss_fncd) as sum_scp2
+    -- ,SUM(-AMOUNT) AS MONTANTE
+    -- ,count(*) as num_reg
+FROM 
+    ( 
+    SELECT * 
+    FROM 
+        (
+        SELECT concat(cempcta,ckbalcao,cknumcta,zdeposit) AS CHAVE,concat(ckbalbem,ckctabem,ckrefbem) AS CHAVE_BEM,*
+        FROM bu_captools_work.anl_emifinan_cH
+        )F1
+    LEFT JOIN 
+        (
+        select concat(cempcta,ckbalcao,cknumcta,zdeposit_mis) AS CHAVE_MIS, concat(cempresa,cbalcao,cnumecta,zdeposit) AS CHAVE_CT
+        from cd_captools.kt_chaves_mis
+        where ref_date='2024-12-31'
+        )F2 ON F1.CHAVE=F2.CHAVE_MIS
+    )F1
+LEFT JOIN 
+    (
+    SELECT chave,zcliente,substr(chave_bem,3,length(chave_bem)-2) as chave_bem_mod,chave_bem,
+        sum_msaldo_final_ct,amount,origem_scp1_emss_imo,scp1_emss_imo,scp1_emss_fncd,preco_aquisicao,sum_preco_aquisicao,scp2_emss_fncd,amount_mug
+        ,CASE
+            WHEN (CAST(-AMOUNT_MUG AS DECIMAL(38,6))/CAST(SUM_preco_aquisicao AS DECIMAL(38,6)))<0 THEN 0 
+            ELSE (CAST(-AMOUNT_MUG AS DECIMAL(38,6))/CAST(SUM_preco_aquisicao AS DECIMAL(38,6))) 
+        END AS RATIO
+    FROM BU_CAPTOOLS_WORK.EMI_FINAN_DEZ24
+    WHERE CHAVE_BEM IS NOT NULL 
+    )F2 ON F1.CHAVE_CT=F2.CHAVE AND F1.CHAVE_BEM=F2.chave_bem_mod
+LEFT JOIN 
+    (
+    SELECT DISTINCT concat(cempresa,cbalcao,cnumecta,zdeposit) AS CHAVE_CT004
+    FROM cd_captools.ct001_univ_saldo
+    WHERE ref_date='2024-12-31'
+    )F3 ON F1.CHAVE_CT=F3.CHAVE_CT004
+LEFT JOIN 
+	(
+	SELECT DISTINCT CONCAT(property_bank_id,PROPERTY_BRANCH_CODE,PROPERTY_CONTRACT_ID,PROPERTY_REFERENCE_CODE) AS CHAVE_BEM,PROPERTY_PURPOSE_CODE,net_floor_area
+	FROM BU_ESG_WORK.PROPERTY
+	WHERE DATA_DATE_PART = '${ref_date}'
+	)F4 ON F2.chave_bem=F4.CHAVE_BEM
+LEFT JOIN 
+	(
+	SELECT  CONCAT(property_bank_id,PROPERTY_BRANCH_CODE,PROPERTY_CONTRACT_ID,PROPERTY_REFERENCE_CODE) AS CHAVE_BEM,epc,quality_score
+	FROM BU_ESG_WORK.property_energy_certificate
+	WHERE DATA_DATE_PART = '${ref_date}'
+	)F5 ON F2.chave_bem=F5.CHAVE_BEM
+LEFT JOIN 
+    ( 
+    SELECT CHAVE_CT,SUM(gross_carrying_amount) AS AMOUNT_CALC,SUM(financed_amount) AS PRECO_AQUI_SUM
+    FROM
+        (
+        SELECT * 
+        FROM 
+            (
+            SELECT concat(cempcta,ckbalcao,cknumcta,zdeposit) AS CHAVE,concat(ckbalbem,ckctabem,ckrefbem) AS CHAVE_BEM,*
+            FROM bu_captools_work.anl_emifinan_cH
+            )F1
+        LEFT JOIN 
+            (
+            select concat(cempcta,ckbalcao,cknumcta,zdeposit_mis) AS CHAVE_MIS, concat(cempresa,cbalcao,cnumecta,zdeposit) AS CHAVE_CT
+            from cd_captools.kt_chaves_mis
+            where ref_date='2024-12-31'
+            )F2 ON F1.CHAVE=F2.CHAVE_MIS
+        )AUX 
+    GROUP BY 1
+    )F6 ON F1.CHAVE_CT=F6.CHAVE_CT
+    
+-- WHERE F2.origem_scp1_emss_imo='Nao Aplicavel'
+-- GROUP BY 1,2,3,4,5,6,7
+-- WHERE F1.CHAVE_BEM='003214308110000000000000000000'
+-- having FLAG ='Sem cruzamento'
+-- and flag_area='Área diferente'
+;

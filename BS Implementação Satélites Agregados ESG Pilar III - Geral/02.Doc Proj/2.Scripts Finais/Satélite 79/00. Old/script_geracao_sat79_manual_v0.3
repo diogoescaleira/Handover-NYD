@@ -1,0 +1,397 @@
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Operações Gerais ----------------------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- Ex Dez24_v3 ==> 37 707 479 045.093206 e (Universo Full s/ MC10) (sem impacto após remoção de universo)
+--                 ==> 1 924 405 registos
+--                 ==> 37 707 477 125.91849691 € sum(amount)
+	
+-- drop table if exists bu_esg_work.AG079_CESG_CTO_agr;
+-- create table bu_esg_work.AG079_CESG_CTO_agr as 
+(select  '00411' as reporting_soc,
+	    case
+		when sociedade_contraparte='01278' then '00000'
+		else sociedade_contraparte
+	    end as counterparty_soc,
+		'BI00411' as adjustment_code,
+
+ 					case 
+			
+						when idcomb_satelite like '%TYVA02%' and excluded_paris <>'' and Investment_Sector = ''  THEN -- ok jun24 (sem casos)
+						concat(idcomb_satelite,";",excluded_paris,";",maturity_esg) 
+
+						when idcomb_satelite like '%TYVA02%' and excluded_paris <>'' and Investment_Sector <> ''  THEN -- ok jun24
+						concat(idcomb_satelite,";",Investment_Sector,";",excluded_paris)
+												
+						when idcomb_satelite like '%TYVA02%' and excluded_paris = '' and Investment_Sector <> ''  THEN -- ok jun24
+						concat(idcomb_satelite,";",Investment_Sector)
+						
+						WHEN idcomb_satelite like '%MC06%' AND idcomb_satelite NOT like '%SC0303%' THEN -- ok jun24
+						concat(idcomb_satelite,";",maturity_esg)
+			
+						WHEN idcomb_satelite like '%TYVA01%' and excluded_paris = '' and idcomb_satelite like '%MC08%' THEN -- ok jun24
+						concat(idcomb_satelite,";",Investment_Sector,";",maturity_esg)
+
+						WHEN idcomb_satelite like '%TYVA01%' and excluded_paris <> '' and idcomb_satelite like '%MC08%' THEN -- jun24 adicionado
+						concat(idcomb_satelite,";",Investment_Sector,";",excluded_paris,";",maturity_esg)						
+	
+						WHEN idcomb_satelite like '%MC06%' AND idcomb_satelite like '%SC0303%' THEN -- ok jun24
+						concat(idcomb_satelite,";",excluded_paris,";",maturity_esg)				
+
+						when flag_maturity=1 and excluded_paris <>'' and Investment_Sector <>'' then 
+						concat(idcomb_satelite,";",Investment_Sector,";",excluded_paris,";",maturity_esg) -- jun24 retirado performing_esg
+						
+						when flag_maturity=1 and excluded_paris =''  then -- jun24 adicionado condição de performing_esg
+						concat(idcomb_satelite,";",maturity_esg)
+						
+						WHEN flag_maturity=0 AND maturity_esg = 'MESG5' and Investment_Sector <>'' then -- ok jun24 (sem casos)
+						concat(idcomb_satelite,";",Investment_Sector,";",excluded_paris,";",maturity_esg)
+						
+						when flag_maturity=0 and excluded_paris <>'' and Investment_Sector <>'' then 
+						concat(idcomb_satelite,";",Investment_Sector,";",excluded_paris) -- jun24 removido o performing_esg e maturity_esg
+						
+						when flag_maturity=0 and excluded_paris ='' and Investment_Sector <>'' then 
+						concat(idcomb_satelite,";",Investment_Sector,";",maturity_esg)
+						
+						else concat(idcomb_satelite,";",maturity_esg)
+					end   as comb_code,						
+		-sum(round(amount,0)) as amount,
+		european_union as EU,
+		chronic_changes as CHRO,
+		acute_changes as ACUT,
+		geo,
+		cnael,
+		nace_esg as nace,
+		csatelite
+
+		from 
+ (select metricas.*, acute_changes,
+chronic_changes from
+ 
+(
+-- drop table if exists bu_esg_work.AG079_CESG_CTO_gra;
+-- create table bu_esg_work.AG079_CESG_CTO_gra as
+	select 																		 
+        a.*,
+        b.zcliente,
+        b.`28_dt_maturity`,
+ --- No MdD da corporação apenas são marcados MC06, MC08 e MC10 com MESG4
+ --- Implementado de acordo com o especificado anteriormente - ATERAR PARA INCORPORAR COD TEMPLATES ++ years to maturity (calcular diretamente no case when)
+		case
+			 when a.idcomb_satelite like '%MC06%' then 'MESG4' -- regra corporação de acordo com satelite_strucutre
+			 when a.idcomb_satelite like '%MC08%' then 'MESG4' -- regra corporação adicionada no piloto de jun23 para investments in subsidiaries pro tyva02 não devemos ter posso usar `17_accumulated_impairment`?
+			 when a.idcomb_satelite like '%MC10%' then 'MESG4'
+			 else 'MESG6'
+			 end as maturity_esg,	 
+			 
+        case
+            when a.idcomb_satelite like '%MC06%'                                                        then 0		--Exclusão de equity
+			when a.idcomb_satelite like '%MC08%'                                                        then 0
+            when fr802.flag_mesg5 = 1                                                                   then 0		--Exclusão de counterparty having the choice of repayment date
+            when (b.`28_dt_maturity` in ('','0001-01-01','9999-12-31') or b.`28_dt_maturity` is null)   then 0
+            when b.`28_dt_maturity` < "${ref_date}"                                                     then 0
+            when round(datediff(to_date(b.`28_dt_maturity`), to_date("${ref_date}"))/365.25,4) <= 05    then 1
+            when round(datediff(to_date(b.`28_dt_maturity`), to_date("${ref_date}"))/365.25,4) <= 10    then 1
+            when round(datediff(to_date(b.`28_dt_maturity`), to_date("${ref_date}"))/365.25,4) <= 20    then 1
+            when round(datediff(to_date(b.`28_dt_maturity`), to_date("${ref_date}"))/365.25,4) >  20    then 1
+            else 0			
+        end as flag_maturity,
+
+--- Alterado para marcar de acordo com cpais_residencia da repartição
+
+		case													
+			when country_code IN ('276', '040',  '056', '100', '196', '191', '208','705', '724',  '233','246', '250','300','348','372','380', '440', '442',  '470', '616', '620', '203','703', '642', '752', '528', '428') 
+				then 'EU1'
+			when country_code NOT IN ('276', '040',  '056', '100', '196', '191', '208','705', '724',  '233','246', '250','300','348','372','380', '440', '442',  '470', '616', '620', '203','703', '642', '752', '528', '428', '')
+				then 'EU2'
+			when b.cpais_residencia IN ('276', '040',  '056', '100', '196', '191', '208','705', '724',  '233','246', '250','300','348','372','380', '440', '442',  '470', '616', '620', '203','703', '642', '752', '528', '428')
+ 				then 'EU1'
+			when b.cpais_residencia	NOT IN ('276', '040',  '056', '100', '196', '191', '208','705', '724',  '233','246', '250','300','348','372','380', '440', '442',  '470', '616', '620', '203','703', '642', '752', '528', '428','')
+				 then 'EU2'
+		else '' end as european_union,
+
+		b.`33_counterparty_type`,	
+		
+        case
+            when  (a.idcomb_satelite like '%SC0303%' or trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras') and nfin.flg_emprs_excl_paris = 1 then 'EXC1' --Excluído
+            when  (a.idcomb_satelite like '%SC0303%' or trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras') and nfin.flg_emprs_excl_paris = 0 then 'EXC2' --Não excluído
+			else ''
+        end as excluded_paris,
+		
+		-- Atualizado para realizar o substring do cod_nace_esg 
+		case 
+            when idcomb_satelite like '%SC0302%' and concat(a.cempresa_ct,a.cbalcao_ct,a.cnumecta_ct,a.zdeposit_ct) in ('31641600005800050PTNOFIIE0000000','31641600005800050PTPLG8IM0001000','31641600005800050PTPL1AIM0000000','31641600005800050PTPLGEIM0004000') then '' -- correção devido a incorreto mapeamento de Contabilidade (email Nuno Pinheiro dia 26/01)
+			when substr(nfin.cod_nace_esg,1,1) = 'A' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL1'
+            when substr(nfin.cod_nace_esg,1,1) = 'B' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL2'
+            when substr(nfin.cod_nace_esg,1,1) = 'D' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL4'
+            when substr(nfin.cod_nace_esg,1,1) = 'C' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL3'
+            when substr(nfin.cod_nace_esg,1,1) = 'E' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL5'
+            when substr(nfin.cod_nace_esg,1,1) = 'F' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL6'
+            when substr(nfin.cod_nace_esg,1,1) = 'G' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL7'
+            when substr(nfin.cod_nace_esg,1,1) = 'H' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL8'
+            when substr(nfin.cod_nace_esg,1,1) = 'I' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL9'
+            when substr(nfin.cod_nace_esg,1,1) = 'J' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL10'
+            when substr(nfin.cod_nace_esg,1,1) = 'L' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL11'
+            when substr(nfin.cod_nace_esg,1,1) = 'M' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL12'  
+            when substr(nfin.cod_nace_esg,1,1) = 'N' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL13'
+            when substr(nfin.cod_nace_esg,1,1) = 'O' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL14'
+            when substr(nfin.cod_nace_esg,1,1) = 'P' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL15'
+            when substr(nfin.cod_nace_esg,1,1) = 'Q' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL16'
+            when substr(nfin.cod_nace_esg,1,1) = 'R' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL17'
+            when substr(nfin.cod_nace_esg,1,1) = 'S' and trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL18'
+            when trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL18'
+			when trim(b.`33_counterparty_type`) = '' and idcomb_satelite like '%SC0303%' then 'CNAEL18'		--Adicionada nova linha de código. Validado com Luísa
+			when idcomb_satelite like '%SC0303%' and b.zcliente = '0000000000' then 'CNAEL18' --Indicação do Nuno Pinheiro devido a assignação errada de contrato sem conta pcsb
+			-- when idcomb_satelite like '%SC0303%' and concat(a.cbalcao_ct,a.cnumecta_ct,a.zdeposit_ct)='6416SUPRIMENTOSPTTAE0AN0006000' then 'CNAEL18' --Indicação do Nuno Pinheiro devido a assignação errada de contrato sem conta pcsb
+            else ''
+        end as CNAEL,
+
+        case
+			-- when idcomb_satelite like '%SC0302%' and concat(a.cempresa_ct,a.cbalcao_ct,a.cnumecta_ct,a.zdeposit_ct) in ('31641600005800050PTNOFIIE0000000','31641600005800050PTPLG8IM0001000','31641600005800050PTPL1AIM0000000','31641600005800050PTPLGEIM0004000') then '' -- correção devido a incorreto mapeamento de Contabilidade (email Nuno Pinheiro dia 26/01)
+            when trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' and nace_esg.nace_level4 is not null then nace_esg.ID
+            when trim(b.`33_counterparty_type`) = 'outras empresas nao financeiras' then 'NACE19010303' --Nace default disponibilizado pela corporação
+            when trim(b.`33_counterparty_type`) in ('', 'resto setores / clientes') and idcomb_satelite like '%SC0303%' and nace_esg.nace_level4 is not null then nace_esg.ID	
+            when trim(b.`33_counterparty_type`) in ('', 'resto setores / clientes') and idcomb_satelite like '%SC0303%' then 'NACE19010303' --Nace default disponibilizado pela corporação
+			when idcomb_satelite like '%SC0303%' and b.zcliente = '0000000000' then 'NACE19010303' --Indicação do Nuno Pinheiro devido a assignação errada de contrato sem conta pcsb
+			-- when idcomb_satelite like '%SC0303%' and concat(a.cbalcao_ct,a.cnumecta_ct,a.zdeposit_ct)='6416SUPRIMENTOSPTTAE0AN0006000' then 'NACE19010303' --Indicação do Nuno Pinheiro devido a assignação errada de contrato sem conta pcsb
+            else ''									
+        end as nace_esg,
+		case 
+        	when ((a.idcomb_satelite like '%SC02%') OR (b.`33_counterparty_type` = 'instituicoes de credito')) and idcomb_satelite like '%MC08%' then 'INVS2'
+        	when ((a.idcomb_satelite like '%SC0301%') OR (b.`33_counterparty_type` = 'setor publico')) and idcomb_satelite like '%MC08%' then 'INVS3'
+        	when ((a.idcomb_satelite like '%SC0302%')  OR (b.`33_counterparty_type` = 'outras instituicoes financeiras')) and idcomb_satelite like '%MC08%' then 'INVS4'
+        	when ((a.idcomb_satelite like '%SC0303%')  OR (b.`33_counterparty_type` = 'outras empresas nao financeiras')) and idcomb_satelite like '%MC08%' then 'INVS5'
+        else '' end as Investment_Sector,
+
+--- Marcação do campo Physical risk_Geographical Area, validando se existem imóveis associados: No caso de existirem imóveis associados - o mapeamento é realizado com o campo 'country_code'proveniente do Modelo de Bens Imóveis, caso contrário, é utilizado o campo 'cpais_residencia'
+        case
+        	-- Geografias que existiam à data: ver alterações em exercicios futuros
+            when country_code is not null and country_code in ('620') then 'GEO3'
+            when country_code is not null and country_code in ('724') then 'GEO1'
+            when country_code is not null and country_code in ('826') then 'GEO2'
+            when country_code is not null and country_code in ('840') then 'GEO4'
+            when country_code is not null and country_code in ('616') then 'GEO5'
+            when country_code is not null and country_code in ('276') then 'GEO6'
+            when country_code is not null and country_code in ('250') then 'GEO7'
+            when country_code is not null and country_code in ('578') then 'GEO8'
+            when country_code is not null and country_code in ('484') then 'GEO9'
+            when country_code is not null and country_code in ('152') then 'GEO10'
+            when country_code is not null and country_code in ('076') then 'GEO11'
+            when country_code is not null and country_code in ('032') then 'GEO12'
+            when country_code is not null and country_code in ('604') then 'GEO13'
+            when country_code is not null and country_code in ('170') then 'GEO14'
+            when country_code is not null and country_code in ('858') then 'GEO15'
+            when country_code is not null and country_code in ('600','068','218','862','238','531') then 'GEO16' --Rest of Latam 
+            when country_code is not null and country_code in ('044','060','092','124','136','192','214','222','312','320','533','591','630','666','780') then 'GEO17' --Rest of North America
+            when country_code is not null and country_code in ('020','040','056','100','191','196','203','208','246','292','300','336','348','352','372','380','428','438','440','442','470','492','498','528','642','643','674','688','703','705','752','756','792','804','807','831','832','833') then 'GEO18' --Rest of Europe    
+            when cast(b.cpais_residencia as int) in (620) then 'GEO3'
+            when cast(b.cpais_residencia as int) in (724) then 'GEO1'
+            when cast(b.cpais_residencia as int) in (826) then 'GEO2'
+            when cast(b.cpais_residencia as int) in (840) then 'GEO4'
+            when cast(b.cpais_residencia as int) in (616) then 'GEO5'
+            when cast(b.cpais_residencia as int) in (276) then 'GEO6'
+            when cast(b.cpais_residencia as int) in (250) then 'GEO7'
+            when cast(b.cpais_residencia as int) in (578) then 'GEO8'
+            when cast(b.cpais_residencia as int) in (484) then 'GEO9'
+            when cast(b.cpais_residencia as int) in (152) then 'GEO10'
+            when cast(b.cpais_residencia as int) in (076) then 'GEO11'
+            when cast(b.cpais_residencia as int) in (032) then 'GEO12'
+            when cast(b.cpais_residencia as int) in (604) then 'GEO13'
+            when cast(b.cpais_residencia as int) in (170) then 'GEO14'
+            when cast(b.cpais_residencia as int) in (858) then 'GEO15'
+            when cast(b.cpais_residencia as int) in (600,068,218,862,238,531) then 'GEO16' --Rest of Latam 
+            when cast(b.cpais_residencia as int) in (044,060,092,124,136,192,214,222,312,320,533,591,630,666,780) then 'GEO17' --Rest of North America
+            when cast(b.cpais_residencia as int) in (020,040,056,100,191,196,203,208,246,292,300,336,348,352,372,380,428,438,440,442,470,492,498,528,642,643,674,688,703,705,752,756,792,804,807,831,832,833) then 'GEO18' --Rest of Europe
+            else 'GEO19'
+        end as geo,
+        peso,        
+    
+
+        saldo_ct*peso as amount
+
+from (select *, concat(cempresa_ct, cbalcao_ct, cnumecta_ct, zdeposit_ct) as chave_ct 
+        from bu_esg_work.rf_pilar3_universo_full 
+		where DT_RFRNC = '${ref_date}' 
+			and id_corrida in (
+				select max(id_corrida)
+				from bu_esg_work.rf_pilar3_universo_full where DT_RFRNC = '${ref_date}')
+        	and csatelite in (79) ) as a
+
+left join (
+	SELECT *
+	FROM bu_esg_work.p3_reparticao_garantias
+	WHERE dt_rfrnc='${ref_date}'
+		AND id_corrida IN (SELECT max(id_corrida) FROM bu_esg_work.p3_reparticao_garantias WHERE DT_RFRNC = '${ref_date}') 
+	)as b -- alterada para reparticao garantias particionada
+on  a.cempresa_ct = b.cempresa_ct
+and a.cbalcao_ct  = b.cbalcao_ct
+and a.cnumecta_ct = b.cnumecta_ct
+and a.zdeposit_ct = b.zdeposit_ct
+
+left join bu_esg_work.rf_pilar3_pesos_Dez24 as peso						-- Tabela representa o peso de cada colateral face ao total do empréstimo
+on  b.cempresa_ct = peso.cempresa_ct
+and b.cbalcao_ct  = peso.cbalcao_ct
+and b.cnumecta_ct = peso.cnumecta_ct
+and b.zdeposit_ct = peso.zdeposit_ct
+and coalesce(b.ckbalbem,'0')    = coalesce(peso.ckbalbem, '0')
+and coalesce(b.ckctabem,'0')    = coalesce(peso.ckctabem, '0')
+and coalesce(b.ckrefbem,'0')    = coalesce(peso.ckrefbem, '0')
+
+
+left join (select * from bu_esg_work.modesg_out_empr_info_nfin where ref_date='${ref_date}') nfin
+on b.zcliente = nfin.zcliente  
+
+
+left join
+
+--- Modelo de Bens Imóveis - Associação do campo 'country_code' para marcação da métrica GEO - Physical risk_Geographical Area
+--- no caso 1 resp - 2 bens - 2 country codes - Considerar country code com maior exposição (Grss repartição de gar)
+(select distinct 
+        concat(property_branch_code, property_contract_id, property_reference_code) as chave_bem_gar, 
+        country_code from business_assets.property
+where data_date_part = '${ref_date}')property
+
+on concat(b.ckbalbem, b.ckctabem, b.ckrefbem ) = property.chave_bem_gar
+
+
+-- left join 
+
+-- select * from (
+-- select *, ROW_NUMBER () OVER (PARTITION BY ckbalbem,ckctabem,ckrefbem
+-- 								ORDER BY 13_gross_carrying_amount  DESC) AS ordem_amount
+-- (
+-- 	SELECT ckbalbem, ckctabem, ckrefbem, 13_gross_carrying_amount
+-- 	FROM bu_esg_work.p3_reparticao_garantias
+-- 	WHERE dt_rfrnc='${ref_date}'
+-- 		AND id_corrida IN (SELECT max(id_corrida) FROM bu_esg_work.p3_reparticao_garantias WHERE DT_RFRNC = '${ref_date}') 
+	
+	
+-- left join 
+	
+-- (select distinct 
+--         concat(property_branch_code, property_contract_id, property_reference_code) as chave_bem_gar, 
+--         country_code from business_assets.property
+-- where data_date_part = '${ref_date}')property	
+
+
+-- on concat(b.ckbalbem, b.ckctabem, b.ckrefbem ) = property.chave_bem_gar
+
+-- ) xx where ordem_amount = 1 ) xyz
+
+
+-- Identificação de operações que entram no bucket MESG5 (Counterparty having the choice of the repayment date)
+left join 
+
+( select distinct a.cempresa_ct, 
+							a.cbalcao_ct, 
+							a.cnumecta_ct, 
+							a.zdeposit_ct, 
+							1 as flag_mesg5
+			 from ( select * 
+					from bu_esg_work.rf_pilar3_universo_full 
+					where DT_RFRNC = '${ref_date}' 
+						and id_corrida in (
+							select max(id_corrida) 
+							from bu_esg_work.rf_pilar3_universo_full 
+							where DT_RFRNC = '${ref_date}')
+							) as a 
+			
+				inner join (select * FROM cd_captools.fr802_pl_contas 
+								where cod_plano = 'BST_IND'
+								and ref_date = "${ref_date}"
+								and (upper(produto) like 'CART%CR%DITO%' 
+								or upper(produto) like '%REPOS%' 
+								or upper(produto) like '%VISTA, DESCOBERTOS E CO%')) as b
+					on a.ifrs_ct = b.conta) as fr802
+	on  a.cempresa_ct = fr802.cempresa_ct
+	and a.cbalcao_ct  = fr802.cbalcao_ct
+	and a.cnumecta_ct = fr802.cnumecta_ct
+	and a.zdeposit_ct = fr802.zdeposit_ct
+
+-- Mapeamento para preenchimento do NACE ESG (para empresas não financeiras), que de momento é igual ao NACE
+left join bu_esg_work.nace_esg_pillar3 as nace_esg		--Criar tabela de excel a importar com base na nova marcação do excel sat 79 caso mudem os NACE que a corporação envia
+on concat(split_part(b.`15_nace_esg`,".",1),split_part(b.`15_nace_esg`,".",2),split_part(b.`15_nace_esg`,".",3)) = trim(split_part(nace_esg.nace_level4, "-",1))
+
+)metricas
+
+--- Tabela de marcação de risco físico
+
+LEFT JOIN 
+
+(SELECT a.cempresa_ct,
+a.cbalcao_ct ,
+a.cnumecta_ct,
+a.zdeposit_ct,
+b.ckbalbem,
+b.ckctabem,
+b.ckrefbem,
+b.zcliente,
+case when flg_act_physcl_rsk_entty = 1 then 'ACUT1'
+	 when max(flg_act_physcl_rsk_prtctn) = 1 then 'ACUT1'
+	 else 'ACUT2'
+end as acute_changes,
+
+case when flg_chrnc_physcl_rsk_entty = 1 then 'CHRO1'
+	 when max(flg_chrnc_physcl_rsk_prtctn) = 1  then 'CHRO1'
+	 else 'CHRO2' 
+end as chronic_changes
+
+
+from 
+(select *
+        from bu_esg_work.rf_pilar3_universo_full 
+		where DT_RFRNC = '${ref_date}' 
+			and id_corrida in (
+				select max(id_corrida)
+				from bu_esg_work.rf_pilar3_universo_full where DT_RFRNC = '${ref_date}')
+        	and csatelite in (79) ) as a
+
+left join (
+	SELECT *
+	FROM bu_esg_work.p3_reparticao_garantias
+	WHERE dt_rfrnc='${ref_date}'
+		AND id_corrida IN (SELECT max(id_corrida) FROM bu_esg_work.p3_reparticao_garantias WHERE DT_RFRNC = '${ref_date}') 
+	)as b -- alterada para reparticao garantias particionada
+on  a.cempresa_ct = b.cempresa_ct
+and a.cbalcao_ct  = b.cbalcao_ct
+and a.cnumecta_ct = b.cnumecta_ct
+and a.zdeposit_ct = b.zdeposit_ct
+
+left join bu_esg_work.rf_pilar3_pesos_Dez24 as peso						-- Tabela representa o peso de cada colateral face ao total do empréstimo
+on  b.cempresa_ct = peso.cempresa_ct
+and b.cbalcao_ct  = peso.cbalcao_ct
+and b.cnumecta_ct = peso.cnumecta_ct
+and b.zdeposit_ct = peso.zdeposit_ct
+and coalesce(b.ckbalbem,'0')    = coalesce(peso.ckbalbem, '0')
+and coalesce(b.ckctabem,'0')    = coalesce(peso.ckctabem, '0')
+and coalesce(b.ckrefbem,'0')    = coalesce(peso.ckrefbem, '0')
+
+
+--- adicionadas as flgs de risco fisico
+left join (select *, flg_rsc_fsc_agd as flg_act_physcl_rsk_entty, flg_rsc_fsc_crnc as flg_chrnc_physcl_rsk_entty  from bu_esg_work.modesg_out_empr_info_nfin where ref_date='${ref_date}') nfin
+on b.zcliente = nfin.zcliente  
+
+
+--- adicionada modesg_bens_imov para retirar as flgs de risco fisico
+left join (select *, flg_rsc_fsc_agd as flg_act_physcl_rsk_prtctn, flg_rsc_fsc_crnc as flg_chrnc_physcl_rsk_prtctn  from bu_esg_work.modesg_out_bens_imoveis where ref_date='${ref_date}') modesg_out_bens_imoveis
+on modesg_out_bens_imoveis.ckbalbem =	b.ckbalbem
+and modesg_out_bens_imoveis.ckctabem = b.ckctabem
+and modesg_out_bens_imoveis.ckrefbem = b.ckrefbem 
+
+
+GROUP BY 1,2,3,4,5,6,7,8, flg_act_physcl_rsk_entty, flg_chrnc_physcl_rsk_entty) rs_fisico
+
+on rs_fisico.cempresa_ct = metricas.cempresa_ct
+and rs_fisico.cbalcao_ct = metricas.cbalcao_ct
+and rs_fisico.cnumecta_ct = metricas.cnumecta_ct
+and rs_fisico.zdeposit_ct = metricas.zdeposit_ct
+and rs_fisico.zcliente = metricas.zcliente
+
+
+) sat79_granular
+
+
+group by 1,2,3,4,6,7,8,9,10,11,12
+having amount <> 0) sat79_agg
+
+;
