@@ -1,0 +1,491 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------- CREATE PARTIÇÕES - TEMPLATES  -----------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*=========================================================================================================================================*/
+/*  STE 2                                                                                                     			          			       */
+/*=========================================================================================================================================*/
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-- 1. TABELA GRANULAR CONTRATO TEMPLATE 2 STE
+
+CREATE TABLE BU_ESG_WORK.AG02_STE_CTO_GRA 
+(
+  DATA_ABERTURA STRING,
+  DATA_VENCIMENTO STRING,
+  CEMPRESA STRING,
+  CBALCAO STRING,
+  CNUMECTA STRING,
+  ZDEPOSIT STRING,
+  TIPO_COLATERAL STRING,
+  BRUTO_IMPARIDADE STRING,
+  FLAG_MESG5 INT,
+  AMOUNT DECIMAL(38,26),
+  cempbem string,
+  CKBALBEM STRING,
+  CKCTABEM STRING,
+  CKREFBEM STRING,
+  EPC STRING,
+  QUALITY_SCORE STRING,
+  CONSUMOS DECIMAL(17,2),
+  VALOR_LTV DECIMAL(21,6),
+  VALOR_LTV_DECIMAL DECIMAL(25,10),
+  TX_JURO DECIMAL(21,6),
+  COLLATERAL_LTV STRING,
+  EPC_LABEL STRING,
+  EP_SCORE STRING,
+  PREVIOUS_YEAR_EPC_LABEL STRING,
+  PREVIOUS_YEAR_EP_SCORE STRING,
+  EUROPEAN_UNION STRING,
+  MATURITY_ESG STRING,
+  FLAG_MATURITY INT,
+  YEARS_TO_MATURITY DOUBLE,
+  NEW_BUSINESS_FLOW STRING,
+  source_code string  
+)
+PARTITIONED BY (ID_CORRIDA BIGINT, REF_DATE STRING);
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-- 2. TABELA MÉTRICA AGREGADA TEMPLATE 2 STE
+
+CREATE TABLE BU_ESG_WORK.AG02_STE_CTO_AGR
+(
+	TIPO_COLATERAL STRING,
+	EPC_LABEL STRING,
+	EP_SCORE STRING,
+	EUROPEAN_UNION STRING,
+	AMOUNT DECIMAL(38,16),
+	QUALITY_SCORE STRING,
+	MATURITY_ESG STRING,
+	AVEG_AUX DOUBLE,
+	NEW_BUSINESS_FLOW STRING,
+	PREVIOUS_YEAR_EP_SCORE STRING,
+	PREVIOUS_YEAR_EPC_LABEL STRING,
+	FLAG_MATURITY INT,
+	INTEREST_AUX DOUBLE,
+	LTV_AUX DOUBLE,
+	COLLATERAL_LTV STRING,
+    source_code string
+)	
+PARTITIONED BY (ID_CORRIDA BIGINT, REF_DATE STRING)
+;
+
+/*=========================================================================================================================================*/
+/*  TEMPLATE 2                                                                                                			          			       */
+/*=========================================================================================================================================*/
+
+-- 1. TABELA GRANULAR CONTRATO TEMPLATE 2
+
+CREATE TABLE BU_ESG_WORK.AG02_TEMP_CTO_GRA 
+(
+  CEMPRESA STRING,
+  CBALCAO STRING,
+  CNUMECTA STRING,
+  ZDEPOSIT STRING,
+  TIPO_COLATERAL STRING,
+  BRUTO_IMPARIDADE STRING,
+  AMOUNT DECIMAL(38,26),
+  cempbem string,
+  CKBALBEM STRING,
+  CKCTABEM STRING,
+  CKREFBEM STRING,
+  EPC STRING,
+  QUALITY_SCORE STRING,
+  CONSUMOS DECIMAL(17,2),
+  EPC_LABEL STRING,
+  EP_SCORE STRING,
+  EUROPEAN_UNION STRING,
+  source_code string
+)
+PARTITIONED BY (ID_CORRIDA BIGINT, REF_DATE STRING);
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-- 2. TABELA MÉTRICA AGREGADA TEMPLATE 2
+
+CREATE TABLE BU_ESG_WORK.AG02_TEMP_CTO_AGR
+(
+	TIPO_COLATERAL STRING,
+	EPC_LABEL STRING,
+	EP_SCORE STRING,
+	EUROPEAN_UNION STRING,
+	AMOUNT DECIMAL(38,16),
+	QUALITY_SCORE STRING,
+    source_code string
+)	
+PARTITIONED BY (ID_CORRIDA BIGINT, REF_DATE STRING);
+
+/*=========================================================================================================================================*/
+/*  TEMPLATE 5                                                                                                			          			       */
+/*=========================================================================================================================================*/
+
+-- 1. TABELA GRANULAR CONTRATO TEMPLATE 5
+
+create table BU_ESG_WORK.AG05_TEMP_CTO_GRA (
+zcliente STRING,
+COD_AJUST STRING,
+SOCIEADADE_CONTRAPARTE STRING,
+cempresa STRING,
+cbalcao STRING,
+cnumecta STRING,
+zdeposit STRING,
+cempbem string,
+CKBALBEM string,
+CKCTABEM string,
+CKREFBEM string,
+amount DECIMAL(38,20),
+VB_IMP string,
+STAGE STRING,
+CONTRAPARTE STRING,
+YEARS_TO_MATURITY double,
+COD_NACE_ESG string,
+tipo_colateral STRING,
+ACUTE_CHANGES string,
+CHRONIC_CHANGES string,
+FLAG_PHYSICAL_RISK tinyint
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-- 2. TABELA MÉTRICA AGREGADA TEMPLATE 5
+
+create table BU_ESG_WORK.AG05_TEMP_CTO_AGR (
+STAGE STRING,
+CONTRAPARTE STRING,
+VB_IMP STRING,
+tipo_colateral STRING,
+MATURITY double,
+COD_NACE_ESG string,
+ACUTE_CHANGES string,
+CHRONIC_CHANGES string,
+FLAG_PHYSICAL_RISK tinyint,
+amount decimal(38,16),
+aveg_aux double
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
+
+
+/*=========================================================================================================================================*/
+/*  TEMPLATE 1                                                                                                			          			       */
+/*=========================================================================================================================================*/
+
+-- 1. TABELA GRANULAR CONTRATO TEMPLATE 1
+
+create table BU_ESG_WORK.AG01_TEMP_CTO_GRA (
+zcliente STRING,
+cempresa STRING,
+cbalcao STRING,
+cnumecta STRING,
+zdeposit STRING,
+VB_IMP string,
+STAGE STRING,
+CONTRAPARTE STRING,
+flag_csrd smallint,
+ASCI DECIMAL(38,6),
+GESI DECIMAL(38,16),
+ASC2 DECIMAL(38,6),
+GESII DECIMAL(38,16),
+ASCIII DECIMAL(38,6),
+GESIII DECIMAL(38,16),
+EXCLUDED_PARIS STRING,
+YEARS_TO_MATURITY DOUBLE,
+COD_NACE_ESG STRING,
+SUSTAINABLE_CCM DECIMAL(38,26),
+SOURCE_EMISSION_1 STRING,
+SOURCE_EMISSION_2 STRING,
+SOURCE_EMISSION_3 STRING,
+EUROPEAN_UNION STRING
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
+
+
+-- 2. TABELA MÉTRICA AGREGADA TEMPLATE 1
+
+create table BU_ESG_WORK.AG01_TEMP_CTO_AGR (
+STAGE STRING,
+CONTRAPARTE STRING,
+VB_IMP STRING,
+EXCLUDED_PARIS string,
+MATURITY double,
+COD_NACE_ESG string,
+ASCI DECIMAL(38,6),
+GESI DECIMAL(38,16),
+ASC2 DECIMAL(38,6),
+GESII DECIMAL(38,16),
+ASCIII DECIMAL(38,6),
+GESIII DECIMAL(38,16),
+FLAG_CSRD SMALLINT,
+SUSTAINABLE_CCM decimal(38,26),
+aveg_aux double,
+SOURCE_EMISSION_1 STRING,
+SOURCE_EMISSION_2 STRING,
+SOURCE_EMISSION_3 STRING
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
+
+
+/*=========================================================================================================================================*/
+/*  TEMPLATE 6,7,8,9                                                                                           			          			       */
+/*=========================================================================================================================================*/
+
+-- 1. TABELA GRANULAR CONTRATO TEMPLATE 6,7,8,9
+
+create table BU_ESG_WORK.AG07_TEMP_CTO_GRA (
+cempresa STRING,
+cbalcao STRING,
+cnumecta STRING,
+zdeposit STRING,
+zcliente STRING,
+INSTRUMENTO_FINANCEIRO string,
+CARTEIRA_CONTABILISTICA STRING,
+CONTRAPARTE STRING,
+TIPO_COLATERAL STRING,
+ORIGINATED_DURING_PERIOD STRING,
+FLG_SAT84 SMALLINT,
+FLAG_CSRD STRING,
+AMOUNT DECIMAL(38,6),
+NOME_PURPOSE_ESG_ALINH_TAX STRING,
+NOME_GENERAL_SPECIFIC_PURPOSE STRING,
+NOME_SPECIFIC_ELIGIBLE STRING,
+NOME_SPECIFIC_SUSTAINABLE STRING,
+ESG_SUBSECTOR_NAME STRING,
+EUROPEAN_UNION STRING,
+SPECIALISED_LENDING STRING,
+TUCCM DECIMAL(38,26),
+ETCCM DECIMAL(38,26),
+TRANT DECIMAL(38,26),
+ENTCCM DECIMAL(38,26),
+TUCCA DECIMAL(38,26),
+ETCCA DECIMAL(38,26),
+ENTCCA DECIMAL(38,26)
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING)
+;
+
+-- 2. TABELA MÉTRICA AGREGADA TEMPLATE 6,7,8,9
+
+create table BU_ESG_WORK.AG07_TEMP_CTO_AGR (
+INSTRUMENTO_FINANCEIRO string,
+CARTEIRA_CONTABILISTICA STRING,
+CONTRAPARTE STRING,
+ESG_SUBSECTOR_NAME STRING,
+TIPO_COLATERAL STRING,
+NOME_GENERAL_SPECIFIC_PURPOSE STRING,
+NOME_PURPOSE_ESG_ALINH_TAX STRING,
+FLAG_CSRD STRING,
+EUROPEAN_UNION STRING,
+NOME_SPECIFIC_ELIGIBLE STRING,
+NOME_SPECIFIC_SUSTAINABLE STRING,
+SPECIALISED_LENDING STRING,
+ORIGINATED_DURING_PERIOD STRING,
+TUCCM DECIMAL(38,26),
+ETCCM DECIMAL(38,26),
+TRANT DECIMAL(38,26),
+ENTCCM DECIMAL(38,26),
+TUCCA DECIMAL(38,26),
+ETCCA DECIMAL(38,26),
+ENTCCA DECIMAL(38,26),
+AMOUNT DECIMAL(38,6),
+FLG_SAT84 SMALLINT
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING)
+;
+
+
+/*=========================================================================================================================================*/
+/*  TEMPLATE 4                                                                                                			          			       */
+/*=========================================================================================================================================*/
+
+-- 1. TABELA GRANULAR CONTRATO TEMPLATE 4
+
+create table BU_ESG_WORK.AG04_TEMP_CTO_GRA (
+cempresa STRING,
+cbalcao STRING,
+cnumecta STRING,
+zdeposit STRING,
+zcliente STRING,
+BRUTO_IMPARIDADE string,
+CONTRAPARTE STRING,
+tipo_colateral string,
+FLAG_CSRD string,
+YEARS_TO_MATURITY DOUBLE,
+MSALDO_FINAL DECIMAL(38,6),
+SUSTAINABLE_CCM DECIMAL(38,26)
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
+
+
+-- 2. TABELA MÉTRICA AGREGADA TEMPLATE 4
+
+create table BU_ESG_WORK.AG04_TEMP_CTO_agr (
+CONTRAPARTE STRING,
+BRUTO_IMPARIDADE string,
+MATURITY DOUBLE,
+SUSTAINABLE_CCM DECIMAL(38,26),
+amount DECIMAL(38,6),
+FLAG_CSRD string,
+aveg_aux double
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
+
+
+/*=========================================================================================================================================*/
+/*  TEMPLATE 10                                                                                                			          			       */
+/*=========================================================================================================================================*/
+
+-- 1. TABELA GRANULAR CONTRATO TEMPLATE 10
+
+create table BU_ESG_WORK.AG10_TEMP_CTO_GRA (
+cempresa STRING,
+cbalcao STRING,
+cnumecta STRING,
+zdeposit STRING,
+zcliente STRING,
+tipo_colateral string,
+INSTRUMENTO_FINANCEIRO STRING,
+CONTRAPARTE STRING,
+AMOUNT DECIMAL(38,6),
+GREEN_FINANCIAL_INSTRUMENT STRING,
+PURPOSE_ESG STRING,
+DCON STRING
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
+
+
+-- 2. TABELA MÉTRICA AGREGADA TEMPLATE 10
+
+create table BU_ESG_WORK.AG10_TEMP_CTO_agr (
+CONTA STRING,
+CONTRAPARTE STRING,
+TIPO_COLATERAL string,
+GREEN_FINANCIAL_INSTRUMENT STRING,
+PURPOSE_ESG STRING,
+amount DECIMAL(38,6)
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
+
+/*=========================================================================================================================================*/
+/*  STE 1                                                                                                      			          			       */
+/*=========================================================================================================================================*/
+
+-- 1. TABELAS GRANULARES CONTRATO TEMPLATE 1 STE
+
+create table BU_ESG_WORK.AG01_STE_CTO_R01_GRA (
+SOCIEADADE_CONTRAPARTE STRING,
+COD_AJUST STRING,
+cempresa STRING,
+cbalcao STRING,
+cnumecta STRING,
+zdeposit STRING,
+ENTIDADE STRING,
+zcliente STRING,
+CONTRAPARTE STRING,
+CNATUREZA_JURI STRING,
+CPAIS_RESIDENCIA STRING,
+CCONTAB_FINAL_ST_SGPS STRING,
+INSTRUMENTO_FINANCEIRO STRING,
+CARTEIRA_CONTABILISTICA STRING,
+INTEREST_COMMISIONS STRING,
+REF_DATE_CLI STRING,
+SALDO DECIMAL(38,16),
+BASE STRING,
+MAIN_CATEGORY STRING,
+ACCOUNTING_PORTEFOLIO STRING,
+INT_COMMIS STRING,
+EUROPEAN_UNION STRING,
+COD_NACE_ESG STRING
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
+
+
+create table BU_ESG_WORK.AG01_STE_CTO_R04_GRA (
+cempcta STRING,
+ckbalcao STRING,
+cknumcta STRING,
+zdeposit_mis STRING,
+zcliente STRING,
+cmetacom STRING,
+SALDO_COMIS DECIMAL(38,16),
+CNATUREZA_JURI STRING,
+CPAIS_RESIDENCIA STRING,
+CONTRAPARTE STRING,
+REF_DATE_CLI STRING,
+BASE STRING,
+MAIN_CATEGORY STRING,
+INTEREST_COMMISIONS STRING,
+EUROPEAN_UNION STRING,
+COD_NACE_ESG STRING
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
+
+
+
+-- 2. TABELAS MÉTRICA AGREGADA TEMPLATE 1 STE
+
+create table BU_ESG_WORK.AG01_STE_CTO_R01_agr (
+ENTIDADE STRING,
+COD_NACE_ESG STRING,
+id_comb string,
+amount DECIMAL(23,0)
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
+
+
+create table BU_ESG_WORK.AG01_STE_CTO_R04_agr (
+ENTIDADE STRING,
+COD_NACE_ESG STRING,
+id_comb string,
+amount DECIMAL(35,0)
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
+
+
+/*=========================================================================================================================================*/
+/*  UNIVERSO LOCAL                                                                                             			          			       */
+/*=========================================================================================================================================*/
+
+
+create table BU_CAPTOOLS_WORK.AUXILIAR_UNIV_LOCAL_CTO (
+ENTIDADE STRING,
+cempresa STRING,
+cbalcao STRING,
+cnumecta STRING,
+zdeposit STRING,
+zcliente STRING,
+SOCIEDADE_CONTRAPARTE STRING,
+MSALDO_FINAL DECIMAL(38,6),
+COD_AJUST STRING,
+INSTRUMENTO_FINANCEIRO STRING,
+CARTEIRA_CONTABILISTICA STRING,
+STAGES STRING,
+PRODUTO STRING,
+CONTRAPARTE STRING,
+CCONTAB_FINAL_IFRS STRING,
+CCONTAB_FINAL_ST_SGPS STRING,
+CCONTAB_FINAL_IDCOMB STRING,
+COMPOSICAO_VALOR STRING,
+CONTRAGARANTIA STRING,
+TIPO_COLATERAL STRING,
+BRUTO_IMPARIDADE STRING,
+TEMPLATE1 tinyint,
+TEMPLATE2 tinyint,
+TEMPLATE5 tinyint,
+TEMPLATE7 tinyint,
+TEMPLATE10 tinyint
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
+
+
+create table BU_CAPTOOLS_WORK.P3_UNIV_LOCAL_CTO (
+ENTIDADE STRING,
+cempresa STRING,
+cbalcao STRING,
+cnumecta STRING,
+zdeposit STRING,
+zcliente STRING,
+SOCIEDADE_CONTRAPARTE STRING,
+BRUTO_IMPARIDADE STRING,
+MSALDO_FINAL DECIMAL(38,6),
+COD_AJUST STRING,
+INSTRUMENTO_FINANCEIRO STRING,
+CARTEIRA_CONTABILISTICA STRING,
+STAGES STRING,
+PRODUTO STRING,
+TIPO_COLATERAL STRING,
+CCONTAB_FINAL_IDCOMB STRING,
+CONTRAPARTE STRING,
+DATA_VENCIMENTO STRING,
+DATA_ABERTURA STRING,
+FLAG_PROJECT_FINANCE STRING,
+CNATUREZA_JURI STRING,
+CPAIS_RESIDENCIA STRING,
+TEMPLATE1 tinyint,
+TEMPLATE2 tinyint,
+TEMPLATE5 tinyint,
+TEMPLATE7 tinyint,
+TEMPLATE10 tinyint
+) PARTITIONED BY (ID_CORRIDA BIGINT,REF_DATE STRING);
