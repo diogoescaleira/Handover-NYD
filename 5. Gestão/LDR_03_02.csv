@@ -1,0 +1,5 @@
+0010;0020;0030;0035;0040;0045;0047;0050;0060;0070;0080;0090;0100
+1;Rank 9 - Ranking in insolvency (master scale);000000000100000;BANCO SANTANDER SA;5493006QMFDDMYWIAM13;LEI code;FALSE;PORTUGAL;Counterparty;1066,44;No;0;Default
+2;Rank 9 - Ranking in insolvency (master scale);000000000200000;NOVIMOVEST - FUNDO DE INVESTIMENTO IMOBILIARIO;7400685089;Type of identifier, other than LEI or MFI code;TRUE;PORTUGAL;Counterparty;60000000;Yes;60000000;Default
+3;Rank 9 - Ranking in insolvency (master scale);000000000300000;NOVIMOVEST - FUNDO DE INVESTIMENTO IMOBILIARIO;7400685089;Type of identifier, other than LEI or MFI code;TRUE;PORTUGAL;Counterparty;100000000;Yes;100000000;Default
+4;Rank 9 - Ranking in insolvency (master scale);000000000400000;NOVIMOVEST - FUNDO DE INVESTIMENTO IMOBILIARIO;7400685089;Type of identifier, other than LEI or MFI code;TRUE;PORTUGAL;Counterparty;140000000;Yes;140000000;Default

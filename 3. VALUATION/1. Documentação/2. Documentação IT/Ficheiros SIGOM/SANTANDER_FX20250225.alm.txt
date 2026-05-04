@@ -1,6 +1,0 @@
-Row Labels	Count of produto/subproduto
-075014	117
-075015	103
-075016	44
-(blank)	
-Grand Total	264
