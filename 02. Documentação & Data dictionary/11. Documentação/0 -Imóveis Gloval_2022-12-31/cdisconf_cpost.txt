@@ -1,0 +1,237 @@
+
+
+--Tabelas auxiliares para calcular o cpost de 4 digitios com maior contagem para cada cfreguesia 
+drop table bu_captools_work.cp7_lau_nuts_aux;
+create table  bu_captools_work.cp7_lau_nuts_aux as 
+    select lau_code, cp4_code, max(contagem) from (
+            select lau_code,cp4_code, count(*) as contagem from (
+                    select distinct *,substr(trim(cp7_code),1,4) as cp4_code from bu_captools_work.cp7_lau_nuts
+            )aux1  group by 1,2 
+    ) aux2 group by 1,2 
+
+
+drop table bu_captools_work.cp7_lau_nuts_aux2;
+create table  bu_captools_work.cp7_lau_nuts_aux2 as
+select  a.lau_code, b.cp4_code from (select lau_code,max(_c2) as max_count from bu_captools_work.cp7_lau_nuts_aux group by 1) a
+inner join (
+            select lau_code, cp4_code, max(contagem) as max_count from (
+                select lau_code,cp4_code, count(*) as contagem from (
+                    select distinct *,substr(trim(cp7_code),1,4) as cp4_code from bu_captools_work.cp7_lau_nuts
+                    )aux1  group by 1,2 
+                ) aux2 group by 1,2 
+            ) as b
+on a.lau_code = b.lau_code  
+and a.max_count = b.max_count
+
+
+select lau_code,count(*) from bu_captools_work.cp7_lau_nuts_aux2 group by 1 having count(*) > 1
+
+select count(*) from (
+select aux1.* from bu_captools_work.cp7_lau_nuts_aux2 as aux1
+            inner join (select lau_code,count(*) from bu_captools_work.cp7_lau_nuts_aux2 group by 1 having count(*) > 1) aux2
+            on aux1.lau_code = aux2.lau_code 
+) a
+
+
+---------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------
+
+
+
+select  * from bu_captools_work.tabaux_gp_cpost_cdisconf
+
+
+--10 066
+select  count(distinct ckbalbem, ckctabem, ckrefbem) from bu_captools_work.tabaux_gp_cpost_cdisconf where length(trim(codigo_postal)) = 7
+
+--3 259
+select  count(distinct ckbalbem, ckctabem, ckrefbem) from bu_captools_work.tabaux_gp_cpost_cdisconf where length(trim(codigo_postal)) = 4
+
+
+--10
+select  count(distinct ckbalbem, ckctabem, ckrefbem) from bu_captools_work.tabaux_gp_cpost_cdisconf where codigo_postal = ''
+
+
+
+--9529 cruzam totalmente com a tabela da Eurostat pelo cdisconf e pelos 7 digitos do cpost
+select  count(distinct ckbalbem, ckctabem, ckrefbem) 
+from (select * from bu_captools_work.tabaux_gp_cpost_cdisconf where length(trim(codigo_postal)) = 7) as a 
+inner join ( select distinct lau_code,cp7_code from bu_captools_work.cp7_lau_nuts) as b 
+on a.cdisconf2 = b.lau_code
+and a.cpost = b.cp7_code
+
+
+
+--9529 cruzam totalmente com a tabela da Eurostat pelo cdisconf e pelos 7 digitos do cpost
+select count(distinct ckbalbem, ckctabem, ckrefbem) 
+from (select * from bu_captools_work.tabaux_gp_cpost_cdisconf where length(trim(codigo_postal)) = 4) as a 
+inner join (select distinct lau_code, substr(cp7_code,1,4) as cp4_code from bu_captools_work.cp7_lau_nuts) as b 
+on a.cdisconf2 = b.lau_code
+and substr(trim(a.cpost)1,4) = b.cp4_code
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------GP---------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+
+--Base com as inconsistências entre cdisconf e código postal
+
+select count (*) from (
+select distinct 
+        ckbalbem, 
+        ckctabem, 
+        ckrefbem,
+        cdisconf,
+        cdisconf2,
+        concat(substr(trim(cdisconf),1,2),'0000') as cdistrito,
+        concat(substr(trim(cdisconf),1,4),'00') as cconcelho,
+        case
+            when substr(trim(cdisconf),5,2) != '00' then substr(trim(cdisconf),1,6)
+            else ''
+        end as cfreguesia,
+        glocalid, 
+        cmorada,
+        gmorada,
+        gnum,
+        glote,
+        gidfracc,
+        ctipolog,
+        ctipbem,
+        cfinalid,
+        gurbaniz,
+        narutil,
+        cpost,
+        codigo_postal,
+        anoconst,
+        cartmatr,
+        class_gpt31
+from bu_captools_work.tabaux_gp_cpost_cdisconf
+where codigo_postal = ''    --366 sem cpost na origem 
+)a                                              
+;
+
+
+SELECT * FROM cd_emprestimos.gpt18_bens where  ckctabem = '17863390001'
+
+select * from bu_captools_work.cp7_lau_nuts where cp7_code = '4430319' --3880796 2700413 
+select * from bu_captools_work.cp7_lau_nuts where lau_code = '161315' --030314   111504(111513)           131713
+
+
+
+SELECT * FROM cd_estruturais.tat91_tabelas
+            where data_date_part = '2022-11-30'
+            and tayd91c0_ctabela = 'J48' and tayd91c0_celemtab = '080338' --131637
+
+
+SELECT * FROM cd_estruturais.interface_moradas 
+where concat(clyr7003_cpostal,clyr7003_cp3) = '2435001'and data_date_part = '2022-12-30'
+
+
+
+--------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------Leasing ---------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+
+--Base com as inconsistências entre cdisconf e código postal
+--24 casos
+select count (*) from (
+select distinct 
+        ckbalbem, 
+        ckctabem, 
+        ckrefbem,
+        cdisconf,
+        cdisconf2,
+        concat(substr(trim(cdisconf),1,2),'0000') as cdistrito,
+        concat(substr(trim(cdisconf),1,4),'00') as cconcelho,
+        case
+            when substr(trim(cdisconf),5,2) != '00' then substr(trim(cdisconf),1,6)
+            else ''
+        end as cfreguesia,
+        glocalid, 
+        cmorada,
+        gmorada,
+        gnum,
+        glote,
+        gidfracc,
+        ctipolog,
+        ctipbem,
+        cfinalid,
+        gurbaniz,
+        narutil,
+        cpost,
+        codigo_postal,
+        anoconst,
+        cartmatr,
+        class_gpt31
+from bu_captools_work.tabaux_fcl_cpost_cdisconf
+where codigo_postal = ''
+)a
+;
+
+select 
+
+select * from bu_captools_work.cp7_lau_nuts where cp7_code = '2805280' --2125199 
+select * from bu_captools_work.cp7_lau_nuts where lau_code = '111610' --2120111
+
+SELECT * FROM cd_estruturais.tat91_tabelas
+            where data_date_part = '2022-11-30'
+            and tayd91c0_ctabela = 'J48' and tayd91c0_celemtab = '111601' --111014
+
+
+
+--------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------CS ---------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
+
+--Base com as inconsistências entre cdisconf e código postal
+--26 casos
+select count (*) from (
+select distinct 
+        ckbalbem, 
+        ckctabem, 
+        ckrefbem,
+        cdisconf,
+        cdisconf2,
+        concat(substr(trim(cdisconf),1,2),'0000') as cdistrito,
+        concat(substr(trim(cdisconf),1,4),'00') as cconcelho,
+        case
+            when substr(trim(cdisconf),5,2) != '00' then substr(trim(cdisconf),1,6)
+            else ''
+        end as cfreguesia,
+        glocalid, 
+        cmorada,
+        gmorada,
+        gnum,
+        glote,
+        gidfracc,
+        ctipolog,
+        ctipbem,
+        cfinalid,
+        gurbaniz,
+        narutil,
+        cpost,
+        codigo_postal,
+        anoconst,
+        cartmatr,
+        class_gpt31
+from bu_captools_work.tabaux_cs_cpost_cdisconf
+where codigo_postal = ''
+)a
+;
+
+
+select * from bu_captools_work.cp7_lau_nuts where cp7_code = '2830302' --2125199 
+select * from bu_captools_work.cp7_lau_nuts where lau_code = '151007' --110730
+
+SELECT * FROM cd_estruturais.tat91_tabelas
+            where data_date_part = '2022-11-30'
+            and tayd91c0_ctabela = 'J48' and tayd91c0_celemtab = '110707' --111014

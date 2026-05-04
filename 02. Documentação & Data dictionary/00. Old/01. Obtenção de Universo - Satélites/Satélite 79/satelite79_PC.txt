@@ -1,0 +1,466 @@
+---------------------------------------------------------------------------------------------------------------------
+-- Pilar 3 ESG Corporativo | Código para geração do satélite 79 (CESG_CNAE_ESG)
+---------------------------------------------------------------------------------------------------------------------
+--  Desenvolvedor: Management Solutions
+---------------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------------------------
+-- Operações Gerais
+---------------------------------------------------------------------------------------------------------------------
+
+-- aplicação de regras e criação de campos auxiliares - operações gerais
+drop table bu_captools_work.rf_pilar3_sat79_tabaux1; 
+create table bu_captools_work.rf_pilar3_sat79_tabaux1 as 
+select  
+        a.*,
+        b.zcliente,
+        b.`26_dt_maturity`,
+        case
+            when a.idcomb_satelite like '%MC06%'                                                       then 'MESG4'
+            when fr802.flag_mesg5 = 1                                                                  then 'MESG5'
+            when b.`26_dt_maturity` in ('','0001-01-01','9999-12-31',null)                             then 'MESG6'
+            when round(datediff(to_date(b.`26_dt_maturity`), to_date('2022-12-31'))/365.25,4) <= 05    then 'MESG1'
+            when round(datediff(to_date(b.`26_dt_maturity`), to_date('2022-12-31'))/365.25,4) <= 10    then 'MESG2'
+            when round(datediff(to_date(b.`26_dt_maturity`), to_date('2022-12-31'))/365.25,4) <= 20    then 'MESG3'
+            when round(datediff(to_date(b.`26_dt_maturity`), to_date('2022-12-31'))/365.25,4) >  20    then 'MESG4'
+            else 'MESG6'
+        end as maturity_esg,
+        case
+            when a.idcomb_satelite like '%MC06%'                                                       then 0
+            when fr802.flag_mesg5 = 1                                                                  then 0
+            when b.`26_dt_maturity` in ('','0001-01-01','9999-12-31',null)                             then 0
+            when b.`26_dt_maturity` < '2022-12-31'                                                     then 0
+            when round(datediff(to_date(b.`26_dt_maturity`), to_date('2022-12-31'))/365.25,4) <= 05    then 1
+            when round(datediff(to_date(b.`26_dt_maturity`), to_date('2022-12-31'))/365.25,4) <= 10    then 1
+            when round(datediff(to_date(b.`26_dt_maturity`), to_date('2022-12-31'))/365.25,4) <= 20    then 1
+            when round(datediff(to_date(b.`26_dt_maturity`), to_date('2022-12-31'))/365.25,4) >  20    then 1
+            else 0
+        end as flag_maturity,
+        case 
+            when b.`26_dt_maturity` in ('','0001-01-01','9999-12-31',null) then null
+            when fr802.flag_mesg5 = 1 then null
+            when b.`26_dt_maturity` < '2022-12-31' then null
+            else round(datediff(to_date(b.`26_dt_maturity`), to_date('2022-12-31'))/365.25, 4)
+        end as years_to_maturity,
+        b.`22_counterparty_nuts`,
+        b.`23_counterparty_zipcode`,
+        b.`13_nace`,
+        b.nace_esg as nace_esg_orig,
+        b.`11_non_performing`,
+        b.`16_accumulated_impairment`,
+        b.`28_stage_ifrs9`,
+        b.`53_client_own_funds`,
+        b.`95_isin`,
+        b.cpais_residencia,
+        case 
+            when b.flag_green_CIB = 1 and b.sfcs_categ_n2 = '1.1 - Renewable energy production' then 'ENSM1'
+            when b.flag_green = 1 and b.sfcs_categ_n2 = '5.2 - Energy efficiency equipment in buildings' then 'ENSM1'
+            when b.flag_green = 1 and b.sfcs_categ_n2 = '2.1 - Land Transport' then 'ENSM1'
+            when b.flag_green = 1 and b.sfcs_categ_n2 = '5.1 - Construction, refurbishment and purchase of “green” buildings' then 'ENSM1'
+            when b.flag_green = 1 and b.sfcs_categ_n2 = '1.1 - Renewable energy production' then 'ENSM1'
+            when (a.idcomb_satelite like '%COLL2%' or a.idcomb_satelite like '%COLL3%') and b.clase_energetica in ('A+','A') and b.fiabilidad in ('','1-REAL') then 'ENSM1'
+            else 'ENSM2'
+        end as env_sust_ccm,
+        b.`4_collateral_zip_code`,
+        b.`3_collateral_nuts`,
+        b.id_30_type_collateral,
+        b.id_15_percent_collateral,
+        case
+            when exc_p.zcliente is not null then 'EXC1'
+            else 'EXC2'
+        end as excluded_paris,
+	b.`31_counterparty_type`,
+        case
+            when substr(b.`13_nace`,1,1) = 'A' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL1'
+            when substr(b.`13_nace`,1,1) = 'B' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL2'
+            when substr(b.`13_nace`,1,1) = 'C' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL3'
+            when substr(b.`13_nace`,1,1) = 'D' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL4'
+            when substr(b.`13_nace`,1,1) = 'E' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL5'
+            when substr(b.`13_nace`,1,1) = 'F' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL6'
+            when substr(b.`13_nace`,1,1) = 'G' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL7'
+            when substr(b.`13_nace`,1,1) = 'H' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL8'
+            when substr(b.`13_nace`,1,1) = 'I' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL9'
+            when substr(b.`13_nace`,1,1) = 'J' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL10'
+            when substr(b.`13_nace`,1,1) = 'L' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL11'
+            when substr(b.`13_nace`,1,1) = 'M' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL12'
+            when substr(b.`13_nace`,1,1) = 'N' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL13'
+            when substr(b.`13_nace`,1,1) = 'O' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL14'
+            when substr(b.`13_nace`,1,1) = 'P' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL15'
+            when substr(b.`13_nace`,1,1) = 'Q' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL16'
+            when substr(b.`13_nace`,1,1) = 'R' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL17'
+            when substr(b.`13_nace`,1,1) = 'S' and trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL18'
+            when trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'CNAEL18'
+            else ''
+        end as CNAEL,
+        case
+            when trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' and nace_esg.nace_level4 is not null then nace_esg.ID
+            when trim(b.`31_counterparty_type`) = 'outras empresas nao financeiras' then 'NACE19'
+            when trim(b.`31_counterparty_type`) = 'outras instituicoes financeiras' and nace_esg.nace_level4 is not null then nace_esg.ID
+            when trim(b.`31_counterparty_type`) = 'outras instituicoes financeiras' then 'NACE116499'
+            when trim(b.`31_counterparty_type`) in ('', 'resto setores / clientes') and idcomb_satelite like '%SC0303%' and nace_esg.nace_level4 is not null then nace_esg.ID
+            when trim(b.`31_counterparty_type`) in ('', 'resto setores / clientes') and idcomb_satelite like '%SC0303%' then 'NACE19'
+            when trim(b.`31_counterparty_type`) in ('', 'resto setores / clientes') and idcomb_satelite like '%SC0302%' and nace_esg.nace_level4 is not null then nace_esg.ID
+            when trim(b.`31_counterparty_type`) in ('', 'resto setores / clientes') and idcomb_satelite like '%SC0302%' then 'NACE116499'
+            else ''
+        end as nace_esg,
+        case 
+            when peso.peso > 1 then 1
+            when peso.peso is null then 1
+            else peso.peso
+        end as peso,        
+        case 
+            when b.ckbalbem is null then 0
+            else 1
+        end as flag_hipotec,
+        b.ckbalbem,
+        b.ckctabem,
+        b.ckrefbem
+
+from (select * from bu_captools_work.rf_pilar3_universo_full where csatelite = 79 and idcomb_satelite not like '%MC10%') as a
+
+inner join bu_captools_work.rf_metricas_pilar3_ctr_v7_84_v1 as b
+on  a.cempresa_ct = b.cempresa_ct
+and a.cbalcao_ct  = b.cbalcao_ct
+and a.cnumecta_ct = b.cnumecta_ct
+and a.zdeposit_ct = b.zdeposit_ct
+
+inner join bu_captools_work.rf_pilar3_pesos as peso
+on  a.cempresa_ct = peso.cempresa_ct
+and a.cbalcao_ct  = peso.cbalcao_ct
+and a.cnumecta_ct = peso.cnumecta_ct
+and a.zdeposit_ct = peso.zdeposit_ct
+and coalesce(b.ckbalcao,'0')    = coalesce(peso.ckbalcao, '0')
+and coalesce(b.cknumcta,'0')    = coalesce(peso.cknumcta, '0')
+and coalesce(b.comp_id_gar,'0') = coalesce(peso.comp_id_gar, '0')
+and coalesce(b.ckbalbem,'0')    = coalesce(peso.ckbalbem, '0')
+and coalesce(b.ckctabem,'0')    = coalesce(peso.ckctabem, '0')
+and coalesce(b.ckrefbem,'0')    = coalesce(peso.ckrefbem, '0')
+
+left join bu_captools_work.rf_pilar3_cdg_tabaux1 as d
+on  a.cempresa_ct = d.cempresa_ct
+and a.cbalcao_ct  = d.cbalcao_ct
+and a.cnumecta_ct = d.cnumecta_ct
+and a.zdeposit_ct = d.zdeposit_ct
+
+-- Identificação das empresas excluídas do Acordo de Paris (pendente não-CIB e colocar dados na tabela granular)
+left join bu_captools_work.rf_comp_excluded_paris_agree as exc_p
+on  b.zcliente = exc_p.zcliente
+
+-- Identificação de operações que entram no bucket MESG5
+left join ( select distinct a.cempresa_ct, a.cbalcao_ct, a.cnumecta_ct, a.zdeposit_ct, 1 as flag_mesg5
+            from bu_captools_work.rf_pilar3_universo_full as a
+            inner join (select * FROM cd_captools.fr802_pl_contas 
+                        where cod_plano = 'BST_IND'
+                        and ref_date = '2022-12-31'
+                        and (upper(produto) like 'CART%CR%DITO%' 
+                            or upper(produto) like '%REPOS%' 
+                            or upper(produto) like '%VISTA, DESCOBERTOS E CO%')) as b
+            on a.ifrs_ct = b.conta) as fr802
+on  a.cempresa_ct = fr802.cempresa_ct
+and a.cbalcao_ct  = fr802.cbalcao_ct
+and a.cnumecta_ct = fr802.cnumecta_ct
+and a.zdeposit_ct = fr802.zdeposit_ct
+
+-- Mapeamento para preenchimento do NACE ESG (para empresas não financeiras), que de momento é igual ao NACE
+left join bu_captools_work.nace_esg_pillar3 as nace_esg
+on b.nace_esg = nace_esg.nace_level4
+
+left join (select *, 1 as flag_cib_green from bu_captools_work.rf_green_scib) as cib
+on a.cnumecta_ct = cib.cknumcta
+;
+
+--
+drop table bu_captools_work.rf_pilar3_sat79_tabaux2;
+create table bu_captools_work.rf_pilar3_sat79_tabaux2 as
+select  a.*,
+        case
+            when a.flag_hipotec = 1 and (idcomb_satelite LIKE '%COLL2%' or idcomb_satelite LIKE '%COLL3%') and coalesce(prhipotec1.rs_acute,prhipotec2.rs_acute) = 'Yes' then 'ACUT1'
+            when a.flag_hipotec = 0 and (idcomb_satelite LIKE '%COLL2%' or idcomb_satelite LIKE '%COLL3%') and coalesce(prhipotec2.rs_acute,prhipotec3.rs_acute) = 'Yes' then 'ACUT1'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and coalesce(prgeral1.rs_acute,prgeral2.rs_acute) = 'Yes' then 'ACUT1'
+            else 'ACUT2'
+        end as acute_changes,
+        case
+            when a.flag_hipotec = 1 and (idcomb_satelite LIKE '%COLL2%' or idcomb_satelite LIKE '%COLL3%') and coalesce(prhipotec1.rs_chronic,prhipotec2.rs_chronic) = 'Yes' then 'CHRO1'
+            when a.flag_hipotec = 0 and (idcomb_satelite LIKE '%COLL2%' or idcomb_satelite LIKE '%COLL3%') and coalesce(prhipotec2.rs_chronic,prhipotec3.rs_chronic) = 'Yes' then 'CHRO1'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and coalesce(prgeral1.rs_chronic,prgeral2.rs_chronic) = 'Yes' then 'CHRO1'
+            else 'CHRO2'
+        end as chronic_changes,
+        case
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and `22_counterparty_nuts` like '%PT%' then 'GEO3'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (724) then 'GEO1'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (826) then 'GEO2'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (620) then 'GEO3'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (840) then 'GEO4'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (616) then 'GEO5'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (276) then 'GEO6'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (250) then 'GEO7'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (578) then 'GEO8'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (484) then 'GEO9'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (152) then 'GEO10'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (076) then 'GEO11'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (032) then 'GEO12'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (604) then 'GEO13'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (170) then 'GEO14'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (858) then 'GEO15'
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (068,218,238,600,862) then 'GEO16' --Rest of Latam
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (44,60,124,136,192,214,222,312,320,533,591,630,780) then 'GEO17' --Rest of North America
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') and cast(a.cpais_residencia as int) in (020,040,056,092,100,191,196,203,208,246,258,260,292,300,336,348,352,372,380,428,438,440,442,470,492,498,528,531,642,643,666,674,688,703,705,752,756,792,804,807,831,832,833) then 'GEO18' --Rest of Europe
+            when (idcomb_satelite NOT LIKE '%COLL2%' and idcomb_satelite NOT LIKE '%COLL3%') then 'GEO19' --Rest of World
+            else 'GEO3'
+        end as geo,
+        saldo_ct*peso as amount
+        
+from bu_captools_work.rf_pilar3_sat79_tabaux1 as a
+
+-- risco físico real para colaterais
+left join (select * from bu_captools_work.pilar3_physical_riskv2 where nace_code like '%Secured%') as prhipotec1
+on a.`3_collateral_nuts` = prhipotec1.nuts_code
+
+-- risco físico real para idcombs com colaterais imobiliarios, mas sem colaterais associados
+left join (select * from bu_captools_work.pilar3_physical_riskv2 where nace_code like '%Secured%') as prhipotec3
+on a.`22_counterparty_nuts` = prhipotec3.nuts_code
+
+-- risco físico proxy para colaterais
+left join (select * from bu_captools_work.pilar3_proxy_physical_risk where nace_code like '%Secured%') as prhipotec2
+on prhipotec2.iso_code = 620
+
+-- risco físico real para demais operações
+left join ( select  *,
+                    case
+                        when substr(nace_code,1,1) = 'A' then concat('NACE','01',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'B' then concat('NACE','02',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'C' then concat('NACE','03',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'D' then concat('NACE','04',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'E' then concat('NACE','05',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'F' then concat('NACE','06',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'G' then concat('NACE','07',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'H' then concat('NACE','08',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'L' then concat('NACE','12',right(nace_code,2))
+                        else 'NACE0000'
+                    end as nace_esg
+            from bu_captools_work.pilar3_physical_riskv2) as prgeral1
+on a.`22_counterparty_nuts` = prgeral1.nuts_code
+and left(a.nace_esg,8) = prgeral1.nace_esg
+
+-- risco físico proxy para demais operações
+left join ( select  *,
+                    case
+                        when substr(nace_code,1,1) = 'A' then concat('NACE','01',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'B' then concat('NACE','02',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'C' then concat('NACE','03',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'D' then concat('NACE','04',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'E' then concat('NACE','05',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'F' then concat('NACE','06',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'G' then concat('NACE','07',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'H' then concat('NACE','08',right(nace_code,2))
+                        when substr(nace_code,1,1) = 'L' then concat('NACE','12',right(nace_code,2))
+                        else 'NACE0000'
+                    end as nace_esg
+            from bu_captools_work.pilar3_proxy_physical_risk) as prgeral2
+on cast(coalesce(a.cpais_residencia,'620') as int) = prgeral2.iso_code
+and left(a.nace_esg,8) = prgeral2.nace_esg
+;
+
+-- cálculo do average weighted maturity
+drop table bu_captools_work.rf_pilar3_sat79_tabaux3;
+create table bu_captools_work.rf_pilar3_sat79_tabaux3 as 
+select  a.*,
+        case 
+            when a.flag_maturity = 0 then null
+            else a.amount/b.saldo_satelite
+        end as aveg_weight
+from bu_captools_work.rf_pilar3_sat79_tabaux2 as a
+inner join ( select geo,
+                    cnael,
+                    nace_esg,
+                    sociedade_contraparte,
+                    cod_ajust,
+                    concat(idcomb_satelite,";",excluded_paris,";",env_sust_ccm,";",maturity_esg,";",chronic_changes,";",acute_changes) as id_comb,
+                    flag_maturity,
+                    sum(amount) as saldo_satelite
+            from bu_captools_work.rf_pilar3_sat79_tabaux2
+            group by 1,2,3,4,5,6,7 ) as b
+on concat(a.idcomb_satelite,";",a.excluded_paris,";",a.env_sust_ccm,";",a.maturity_esg,";",a.chronic_changes,";",a.acute_changes) = b.id_comb
+and a.flag_maturity = b.flag_maturity
+and a.geo = b.geo
+and a.cnael = b.cnael
+and a.nace_esg = b.nace_esg
+and a.sociedade_contraparte = b.sociedade_contraparte
+and a.cod_ajust = b.cod_ajust
+;
+
+-- tabela final - operações gerais
+drop table bu_captools_work.rf_pilar3_sat79_tabaux4;
+create table bu_captools_work.rf_pilar3_sat79_tabaux4 as
+select
+    reporting_soc,
+    counterparty_soc,
+    adjustment_code,
+    id_comb,
+    amount,
+    geo,
+    cnae,
+    nace,
+    case when aveg is null then 0 else aveg end as aveg
+from (select 
+            '00411' as reporting_soc,
+            sociedade_contraparte as counterparty_soc,
+            cod_ajust as adjustment_code,
+            concat(idcomb_satelite,";",excluded_paris,";",env_sust_ccm,";",maturity_esg,";",chronic_changes,";",acute_changes) as id_comb,
+            -round(sum(amount),0) as amount,
+            geo,
+            cnael as cnae,
+            nace_esg as nace,
+            ceiling(sum(years_to_maturity * aveg_weight)) as aveg,
+            maturity_esg
+        
+        from bu_captools_work.rf_pilar3_sat79_tabaux3
+        group by 1,2,3,4,6,7,8,10
+        order by 4,1,2,3,6,7,8 ) a
+where amount <> 0
+;
+
+
+---------------------------------------------------------------------------------------------------------------------
+-- Adjudicados
+---------------------------------------------------------------------------------------------------------------------
+
+-- tabela para atribuição de métricas
+drop table bu_captools_work.rf_pilar3_sat79_tabadj1;
+create table bu_captools_work.rf_pilar3_sat79_tabadj1 as
+select 
+        a.idcomb_satelite, 
+        a.sociedade_contraparte,
+        a.cod_ajust,
+        a.cargabal_ct,
+        a.saldo_ct,
+        b.cod_imovel,
+        b.tipo_adjudicado,
+        b.cargabal_vc,
+        c.cargabal_prov,
+        coalesce(b.fiabilidad,c.fiabilidad) as fiabilidad,
+        coalesce(b.clase_energetica,c.clase_energetica) as clase_energetica,
+        coalesce(b.emisiones,c.emisiones) as emisiones,
+        coalesce(b.consumos,c.consumos) as consumos,
+        'EXC2' as excluded_paris,
+        case
+            when b.clase_energetica like 'A%' and b.fiabilidad in ('','1-REAL') then 'ENSM1'
+            else 'ENSM2'
+        end as env_sust_ccm,
+        'MESG4' as maturity_esg,
+        case
+            when coalesce(prhipotec1.rs_acute,prhipotec2.rs_acute) = 'Yes' then 'ACUT1'
+            else 'ACUT2'
+        end as acute_changes,
+        case
+            when coalesce(prhipotec1.rs_chronic,prhipotec2.rs_chronic) = 'Yes' then 'CHRO1'
+            else 'CHRO2'
+        end as chronic_changes,
+        case 
+            when cargabal_ct = '' then -saldo_ct
+            when b.cargabal_vc in ('1605000','1605010') then b.valor_cargabal_vc
+            else -c.valor_cargabal_prov
+        end as amount
+      
+from (  select csatelite, idcomb_satelite, sociedade_contraparte, cod_ajust, cargabal_ct, sum(saldo_ct) as saldo_ct 
+        from bu_captools_work.rf_pilar3_universo_full where csatelite = 79 and idcomb_satelite like '%MC10%' 
+        group by 1,2,3,4,5) as a
+        
+left join (select * from bu_captools_work.rf_metricas_adjudicad_final_v2 
+            where tipo_adjudicado <> 'Totta URBE' and cargabal_vc in ('1605000','1605010')) as b
+on a.cargabal_ct = b.cargabal_vc
+        
+left join (select * from bu_captools_work.rf_metricas_adjudicad_final_v2 
+            where tipo_adjudicado <> 'Totta URBE' and cargabal_prov in ('2642300')) as c
+on a.cargabal_ct = c.cargabal_prov
+
+-- risco físico real
+left join (select * from bu_captools_work.pilar3_physical_riskv2 where nace_code like '%Secured%') as prhipotec1
+on coalesce(b.id3_collateral_nuts,c.id3_collateral_nuts) = prhipotec1.nuts_code
+
+-- risco físico proxy
+left join (select * from bu_captools_work.pilar3_proxy_physical_risk where nace_code like '%Secured%') as prhipotec2
+on prhipotec2.iso_code = 620
+;
+
+-- tabela final
+drop table bu_captools_work.rf_pilar3_sat79_tabadj2;
+create table bu_captools_work.rf_pilar3_sat79_tabadj2 as
+select
+    '00411' as reporting_soc,
+    sociedade_contraparte as counterparty_soc,
+    cod_ajust as adjustment_code,
+    concat(idcomb_satelite,";",excluded_paris,";",env_sust_ccm,";",maturity_esg,";",chronic_changes,";",acute_changes) as id_comb,
+    sum(round(amount,0)) as amount,
+    'GEO3' as geo,
+    '' as cnae,
+    '' as nace,
+    0 as aveg
+from bu_captools_work.rf_pilar3_sat79_tabadj1
+group by 1,2,3,4,6,7,8,9
+;
+
+
+---------------------------------------------------------------------------------------------------------------------
+-- Consolidação
+---------------------------------------------------------------------------------------------------------------------
+
+-- tabela final - consolidação
+drop table bu_captools_work.rf_pilar3_satelite79v2;
+create table bu_captools_work.rf_pilar3_satelite79v2 as
+select * from rf_pilar3_sat79_tabaux4
+union
+select * from rf_pilar3_sat79_tabadj2
+;
+
+
+---------------------------------------------------------------------------------------------------------------------
+-- Testes e Validações
+---------------------------------------------------------------------------------------------------------------------
+
+-- Comparação de saldos (input x output)
+-- input
+-- 40 526 723 553
+select sum(saldo_ct)
+from bu_captools_work.rf_pilar3_universo_full
+where csatelite = 79 
+-- and idcomb_satelite like '%MC10%'
+;
+
+-- output
+-- 40 526 723 599
+select sum(amount) 
+from bu_captools_work.rf_pilar3_satelite79v2
+;
+
+
+-- validação MESG-AVEG
+select 
+    case 
+        when id_comb like '%MESG1%' then 'MESG1'
+        when id_comb like '%MESG2%' then 'MESG2'
+        when id_comb like '%MESG3%' then 'MESG3'
+        when id_comb like '%MESG4%' then 'MESG4'
+        when id_comb like '%MESG5%' then 'MESG5'
+        when id_comb like '%MESG6%' then 'MESG6'
+        else ''
+    end as bucket,
+    aveg,
+    sum(amount) as saldo
+from bu_captools_work.rf_pilar3_satelite79v2
+group by 1,2
+order by 1,2
+;
+
+-- validação de IDcomb
+select 
+    a.id_comb,
+    case when b.idcomb_pilar3 is null then 0 else 1 end as flag_idcomb_valido
+from bu_captools_work.rf_pilar3_satelite79v2 as a
+left join (select distinct idcomb_pilar3 from bu_captools_work.pilar3_idcomb_completo where csatelite = 79) as b
+on a.id_comb = b.idcomb_pilar3 
+order by flag_idcomb_valido 
+;
+
+
+

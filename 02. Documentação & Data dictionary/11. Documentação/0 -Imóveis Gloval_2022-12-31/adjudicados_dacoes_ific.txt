@@ -1,0 +1,370 @@
+--------------------------------------------------------------------
+------------------------ TABELAS AUXILIARES ------------------------
+--------------------------------------------------------------------
+
+-- Drop tables
+drop table bu_captools_work.aux_imoveis_nov;
+drop table bu_captools_work.aux_gpt18_gpt32_nov;
+
+-- tabela de imóveis (cd_riscos)
+create table bu_captools_work.aux_imoveis_nov as
+select distinct    
+    zcliente,
+    ckbalbem,
+    ckctabem,
+    cast(zbem as string) as zbem,
+    concat(ckbalbem, ckctabem, cast(zbem as string)) as chave,
+    right(concat('000000',trim(cdisconf)),6) as cdisconf,
+    concat(substr(trim(right(concat('000000',trim(cdisconf)),6)),1,2),'0000') as cdistrito,
+    concat(substr(trim(right(concat('000000',trim(cdisconf)),6)),1,4),'00') as cconcelho,
+    substr(trim(right(concat('000000',trim(cdisconf)),6)),1,6) as cfreguesia,
+    glocal,
+    cmorada,
+    gmorada1,
+    gmorada2,
+    gnum,
+    glote,
+    gidfracc,
+    cpost,
+    gartmatr,
+    ctipbem,
+    gfraccao,
+    gconserv,
+    gficha,
+    mvalaqui,
+    mvalcontat 
+from cd_riscos.ivt01_imoveis
+where data_date_part = '2022-11-30';
+
+-- GPTs (gpt18 e gpt32)
+create table bu_captools_work.aux_gpt18_gpt32_nov as
+select distinct b.ckbalbem, b.ckctabem, b.cempresa, b.ckbalcao, b.cknumcta, a.cfinalid, a.narutil, b.cfinbem, b.anoconst
+from cd_emprestimos.gpt32_bemimove as a
+left join
+(select cempbem,
+    ckbalbem,
+    ckctabem,
+    cempresa,
+    ckbalcao,
+    cknumcta,
+    cfinbem,
+    anoconst,
+    max(data_date_part) as ref_date
+from cd_emprestimos.gpt18_bens
+where data_date_part = '2022-11-30'
+group by 1,2,3,4,5,6,7,8) as b
+on A.ckbalbem = B.ckbalbem
+AND A.ckctabem = B.ckctabem;
+
+
+--------------------------------------------------------------------
+----------------------- Dações e Arrematações ----------------------
+--------------------------------------------------------------------
+
+-- Carregar lista de adjudicados 
+drop table bu_captools_work.aux_adjudicados_DA_nov;
+create table bu_captools_work.aux_adjudicados_DA_nov
+(
+origem string,
+balcao string,
+zcliente string,
+saldo decimal(27,2)
+)
+
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE;
+
+-- Drop tables
+drop table bu_captools_work.aux_adjudicados_DA_nov_imoveis;
+drop table bu_captools_work.aux_adj_DA_nov_stats;
+drop table bu_captools_work.aux_adj_DA_nov_tat;
+
+-- Tabelas intermédias
+-- Cruzar aux_adjudicados_DA_nov, aux_imoveis_nov e aux_gpt18_gpt32_nov
+create table bu_captools_work.aux_adjudicados_DA_nov_imoveis AS
+SELECT distinct B.*, C.cfinalid, C.narutil, C.cfinbem, C.anoconst
+FROM bu_captools_work.aux_adjudicados_DA_nov as A
+left join (select distinct * from bu_captools_work.aux_imoveis_nov) as B
+on A.zcliente = cast(B.zcliente as string)
+left join bu_captools_work.aux_gpt18_gpt32_nov as C
+ON C.ckbalbem = B.ckbalbem
+AND C.ckctabem = B.ckctabem;
+
+-- Extrair nome de distrito, concelho, freguesia e tipo de via (cd_estruturais.tat91_tabelas)
+create table bu_captools_work.aux_adj_DA_nov_stats as
+select DISTINCT a.*, 
+    b.tayd91c0_gelemtab as nome_distrito,
+    c.tayd91c0_gelemtab as nome_concelho,
+    d.tayd91c0_gelemtab as nome_freguesia,
+    f.tayd91c0_gelemtab as nome_tipo_via
+from bu_captools_work.aux_adjudicados_DA_nov_imoveis as a
+    
+left join 
+(SELECT * 
+FROM cd_estruturais.tat91_tabelas
+where data_date_part = '2022-11-30'
+    and tayd91c0_ctabela = 'J48') as b
+on trim(a.cdistrito) = trim(b.tayd91c0_celemtab)
+    
+left join 
+(SELECT * 
+FROM cd_estruturais.tat91_tabelas
+where data_date_part = '2022-11-30'
+    and tayd91c0_ctabela = 'J48') as c
+on trim(a.cconcelho) = trim(c.tayd91c0_celemtab)
+    
+left join
+(SELECT * 
+FROM cd_estruturais.tat91_tabelas
+where data_date_part = '2022-11-30'
+    and tayd91c0_ctabela = 'J48') as d
+on trim(a.cfreguesia) = trim(d.tayd91c0_celemtab)
+    
+left join 
+(SELECT * 
+FROM cd_estruturais.tat91_tabelas
+where data_date_part = '2022-11-30'
+    and tayd91c0_ctabela = '437') as f
+on trim(a.cmorada) = trim(f.tayd91c0_celemtab);
+
+-- Extrair finalidade_bem
+create table bu_captools_work.aux_adj_DA_nov_tat as
+select distinct A.*, B.tayd91c0_gelemtab as finalidade_bem
+from bu_captools_work.aux_adj_DA_nov_stats as A
+left join 
+(SELECT * 
+FROM cd_estruturais.tat91_tabelas
+where data_date_part = '2022-11-30'
+    and tayd91c0_ctabela = '438') as B
+on trim(A.cfinbem) = trim(B.tayd91c0_celemtab);
+
+-- versão final - layout para a gloval
+drop table bu_captools_work.adjudicados_final_nov;
+create table bu_captools_work.adjudicados_final_nov as
+select
+        zcliente as zcliente,
+        gmorada1,
+        mvalaqui as valor_aquisicao,
+        chave as codigo_banco,
+        coalesce(cdistrito,'') as codigo_distrito,
+        coalesce(nome_distrito,'') as nombre_distrito,
+        coalesce(cconcelho,'') as codigo_concejo,
+        coalesce(nome_concelho,'') as nombre_concejo,
+        coalesce(cfreguesia,'') as codigo_freguesia,
+        coalesce(nome_freguesia,'') as nombre_freguesia,
+        coalesce(glocal,'') as localidade,
+        coalesce(cmorada,'') as tipo_via,
+        coalesce(nome_tipo_via,'') as nombre_tipo_via,
+        coalesce(gmorada2,'') as nombre_via,
+        coalesce(gnum,'') as numero_via,
+        coalesce(glote,'') as lote,
+       '' as urbanizacion,
+        coalesce(nome_tipo_via,'') as caglurb,
+         coalesce(gidfracc,'') as resto_direccion,
+        '' as latitud,
+        '' as longitud,
+        case
+            when length(substr(trim(cpost),1,4)) = 4 then substr(trim(cpost),1,4)
+            else ''
+        end as codigo_postal,
+        case
+            when length(substr(trim(cpost),5,3)) = 3 then substr(trim(cpost),5,3)
+            else ''
+        end as subcodigo_postal,
+        coalesce(cast(narutil as string),'') as superficie_util,
+        coalesce(anoconst,'') as anio_construccion,
+       case
+            when (trim(cfinbem) in ('01','06','07')) or (trim(cfinbem) = '08' and trim(ctipbem) in ('12','13','14')) then 1
+            else 0
+        end as tipo_inmueble_habitacao,      
+        case
+            when ((trim(cfinbem) in ('01','06','07')) or (trim(cfinbem) = '08' and trim(ctipbem) in ('12','13','14'))) and trim(ctipbem) in ('11') then 1
+            else 0
+        end as piso_apartamento,       
+        case
+            when ((trim(cfinbem) in ('01','06','07')) or (trim(cfinbem) = '08' and trim(ctipbem) in ('12','13','14'))) and trim(ctipbem) in ('10') then 1
+            else 0
+        end as casa_unifamiliar,
+        case
+            when trim(cfinbem) in ('02','03','04','05') then 1
+            else 0
+        end as tipo_inmueble_comercio_servicos,
+        coalesce(gconserv,'') as nome_conservatoria,
+        coalesce(gficha,'') as sub_num,
+        coalesce(gartmatr,'') as art_matriciais,
+        coalesce(gfraccao,'') as fraccao_autonoma,
+        coalesce(finalidade_bem,'') as finalidade_bem
+from bu_captools_work.aux_adj_DA_nov_tat;
+
+select * from bu_captools_work.adjudicados_final_nov;
+
+-- Verificar as que não estão na tabela das garantias 
+select distinct A.zcliente
+from bu_captools_work.aux_adj_DA_nov_tat as A
+LEFT JOIN (SELECT distinct * FROM cd_garantias.gt008_trz_gt_imv 
+where ref_date = '2022-11-30') AS B
+ON  A.ckbalbem = B.ckbalbem
+AND A.ckctabem = B.ckctabem 
+WHERE B.ckctabem IS NULL;
+
+
+
+--------------------------------------------------------------------
+------------------------------- IFIC -------------------------------
+--------------------------------------------------------------------
+
+-- Carregar lista de adjudicados 
+drop table bu_captools_work.aux_adjudicados_IFIC_nov;
+create table bu_captools_work.aux_adjudicados_IFIC_nov
+(
+contracto string,
+imovel string
+)
+
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE;
+
+-- 20 leases adjudicados 
+select distinct * from bu_captools_work.aux_adjudicados_IFIC_nov;
+
+-- descobrir o zcliente
+drop table bu_captools_work.aux_adjudicados_IFIC_nov_fcl;
+Create table bu_captools_work.aux_adjudicados_IFIC_nov_fcl as
+SELECT distinct A.*, B.*
+from bu_captools_work.aux_adjudicados_IFIC_nov as A
+left join ( select * from land_leasing.lgt03_ravalimo) as B
+on cast(trim(imovel) as bigint) = cast(B.zimovel as bigint);
+
+SELECT * FROM bu_captools_work.aux_adjudicados_IFIC_nov_fcl;
+
+
+-- Drop tables
+drop table bu_captools_work.aux_adjudicados_IFIC_nov_imoveis;
+drop table bu_captools_work.aux_adj_IFIC_nov_stats;
+drop table bu_captools_work.aux_adj_IFIC_nov_tat;
+
+-- Tabelas intermédias
+-- Cruzar aux_adjudicados_DA_nov, aux_imoveis_nov e aux_gpt18_gpt32_nov
+create table bu_captools_work.aux_adjudicados_IFIC_nov_imoveis AS
+SELECT distinct B.*, C.cfinalid, C.narutil, C.cfinbem, C.anoconst
+FROM bu_captools_work.aux_adjudicados_IFIC_nov_fcl as A
+left join (select distinct * from bu_captools_work.aux_imoveis_nov) as B
+on cast(A.zcliente as string) = cast(B.zcliente as string)
+left join bu_captools_work.aux_gpt18_gpt32_nov as C
+ON C.ckbalbem = B.ckbalbem
+AND C.ckctabem = B.ckctabem;
+
+-- Extrair nome de distrito, concelho, freguesia e tipo de via (cd_estruturais.tat91_tabelas)
+create table bu_captools_work.aux_adj_IFIC_nov_stats as
+select DISTINCT a.*, 
+    b.tayd91c0_gelemtab as nome_distrito,
+    c.tayd91c0_gelemtab as nome_concelho,
+    d.tayd91c0_gelemtab as nome_freguesia,
+    f.tayd91c0_gelemtab as nome_tipo_via
+from bu_captools_work.aux_adjudicados_IFIC_nov_imoveis as a
+    
+left join 
+(SELECT * 
+FROM cd_estruturais.tat91_tabelas
+where data_date_part = '2022-11-30'
+    and tayd91c0_ctabela = 'J48') as b
+on trim(a.cdistrito) = trim(b.tayd91c0_celemtab)
+    
+left join 
+(SELECT * 
+FROM cd_estruturais.tat91_tabelas
+where data_date_part = '2022-11-30'
+    and tayd91c0_ctabela = 'J48') as c
+on trim(a.cconcelho) = trim(c.tayd91c0_celemtab)
+    
+left join
+(SELECT * 
+FROM cd_estruturais.tat91_tabelas
+where data_date_part = '2022-11-30'
+    and tayd91c0_ctabela = 'J48') as d
+on trim(a.cfreguesia) = trim(d.tayd91c0_celemtab)
+    
+left join 
+(SELECT * 
+FROM cd_estruturais.tat91_tabelas
+where data_date_part = '2022-11-30'
+    and tayd91c0_ctabela = '437') as f
+on trim(a.cmorada) = trim(f.tayd91c0_celemtab);
+
+-- Extrair finalidade_bem
+create table bu_captools_work.aux_adj_IFIC_nov_tat as
+select distinct A.*, B.tayd91c0_gelemtab as finalidade_bem
+from bu_captools_work.aux_adj_IFIC_nov_stats as A
+left join 
+(SELECT * 
+FROM cd_estruturais.tat91_tabelas
+where data_date_part = '2022-11-30'
+    and tayd91c0_ctabela = '438') as B
+on trim(A.cfinbem) = trim(B.tayd91c0_celemtab);
+
+-- versão final - layout para a gloval
+drop table bu_captools_work.adjudicados_final_nov_IFIC;
+create table bu_captools_work.adjudicados_final_nov_IFIC as
+select
+        zcliente as zcliente,
+        gmorada1,
+        mvalcontat as valor_aquisicao,
+        chave as codigo_banco,
+        coalesce(cdistrito,'') as codigo_distrito,
+        coalesce(nome_distrito,'') as nombre_distrito,
+        coalesce(cconcelho,'') as codigo_concejo,
+        coalesce(nome_concelho,'') as nombre_concejo,
+        coalesce(cfreguesia,'') as codigo_freguesia,
+        coalesce(nome_freguesia,'') as nombre_freguesia,
+        coalesce(glocal,'') as localidade,
+        coalesce(cmorada,'') as tipo_via,
+        coalesce(nome_tipo_via,'') as nombre_tipo_via,
+        coalesce(gmorada2,'') as nombre_via,
+        coalesce(gnum,'') as numero_via,
+        coalesce(glote,'') as lote,
+       '' as urbanizacion,
+        coalesce(nome_tipo_via,'') as caglurb,
+         coalesce(gidfracc,'') as resto_direccion,
+        '' as latitud,
+        '' as longitud,
+        case
+            when length(substr(trim(cpost),1,4)) = 4 then substr(trim(cpost),1,4)
+            else ''
+        end as codigo_postal,
+        case
+            when length(substr(trim(cpost),5,3)) = 3 then substr(trim(cpost),5,3)
+            else ''
+        end as subcodigo_postal,
+        coalesce(cast(narutil as string),'') as superficie_util,
+        coalesce(anoconst,'') as anio_construccion,
+       case
+            when (trim(cfinbem) in ('01','06','07')) or (trim(cfinbem) = '08' and trim(ctipbem) in ('12','13','14')) then 1
+            else 0
+        end as tipo_inmueble_habitacao,      
+        case
+            when ((trim(cfinbem) in ('01','06','07')) or (trim(cfinbem) = '08' and trim(ctipbem) in ('12','13','14'))) and trim(ctipbem) in ('11') then 1
+            else 0
+        end as piso_apartamento,       
+        case
+            when ((trim(cfinbem) in ('01','06','07')) or (trim(cfinbem) = '08' and trim(ctipbem) in ('12','13','14'))) and trim(ctipbem) in ('10') then 1
+            else 0
+        end as casa_unifamiliar,
+        case
+            when trim(cfinbem) in ('02','03','04','05') then 1
+            else 0
+        end as tipo_inmueble_comercio_servicos,
+        coalesce(gconserv,'') as nome_conservatoria,
+        coalesce(gficha,'') as sub_num,
+        coalesce(gartmatr,'') as art_matriciais,
+        coalesce(gfraccao,'') as fraccao_autonoma,
+        coalesce(finalidade_bem,'') as finalidade_bem
+from bu_captools_work.aux_adj_IFIC_nov_tat;
+
+select * from bu_captools_work.adjudicados_final_nov_IFIC;
+
+-- Verificar as que não estão na tabela das garantias
+select distinct A.zcliente, A.ckbalbem, A.ckctabem
+from bu_captools_work.aux_adj_IFIC_nov_tat as A
+LEFT JOIN (SELECT distinct * FROM cd_garantias.gt008_trz_gt_imv 
+where ref_date = '2022-11-30') AS B
+ON  A.ckbalbem = B.ckbalbem
+AND A.ckctabem = B.ckctabem 
+WHERE B.ckctabem IS NULL;
