@@ -1,0 +1,76 @@
+ Volume in drive C is Windows
+ Volume Serial Number is 3C0D-76F4
+
+ Directory of C:\Users\S614403\Santander Office 365\Documentacao Aplicacional - General
+
+17/03/2025  11:32    <DIR>          .
+17/03/2025  11:32    <DIR>          ..
+06/02/2025  16:07    <DIR>          00 Templates
+25/09/2023  09:45             (791) Ambiente de trabalho - Atalho.lnk
+06/02/2025  16:07    <DIR>          APMF0001013975-DP-Dep¢sitos a Prazo
+06/02/2025  16:07    <DIR>          APMF0001013976-FA-Factoring-Eurofac
+06/02/2025  16:07    <DIR>          APMF0001013977-LG-Lease
+10/03/2025  19:12    <DIR>          APMF0001013978-Emprestimos
+06/02/2025  16:07    <DIR>          APMF0001013978-GP-Gestao Processual
+06/02/2025  16:07    <DIR>          APMF0001013981-CR-Cartoes
+20/02/2025  11:25    <DIR>          APMF0001013983-FU-Fundos
+06/02/2025  16:07    <DIR>          APMF0001013984-TT-T¡tulos
+06/02/2025  16:07    <DIR>          APMF0001013992-Cr‚ditos Document rios
+06/02/2025  16:07    <DIR>          APMF0001013992-Remessas
+06/02/2025  16:07    <DIR>          APMF0001013995-TC-Contencioso
+06/02/2025  16:07    <DIR>          APMF0001013996-MG-Morosidade Global
+06/02/2025  16:07    <DIR>          APMF0001014000-BDP
+06/02/2025  16:07    <DIR>          APMF0001014026-Propostas
+06/02/2025  16:07    <DIR>          APMF0001014035-RN-Reestrutura‡oes
+06/02/2025  16:07    <DIR>          APMF0001014059-BG-Garantias Prestadas
+06/02/2025  16:07    <DIR>          APMF0001014078-Efeitos
+06/02/2025  16:07    <DIR>          APMF0001014105-FC-Confirming
+06/02/2025  16:07    <DIR>          APMF0001014107-Contas
+06/02/2025  16:07    <DIR>          APMF0001014108-CS-Cau‡oes
+21/02/2025  16:20    <DIR>          APMF0001014108-Garantias
+06/02/2025  16:07    <DIR>          APMF0001014113-GS-Gestao e Seguimento de Irregularidades
+06/02/2025  16:07    <DIR>          APMF0001014131-LM-Limites
+06/02/2025  16:07    <DIR>          APMF0001014133-MA-M gico
+06/02/2025  16:07    <DIR>          APMF0001014159-RA-Rating
+06/02/2025  16:07    <DIR>          APMF0001014160-RE-Recupera‡oes
+06/02/2025  16:07    <DIR>          APMF0001014165-RI-Responsabilidades
+06/02/2025  16:07    <DIR>          APMF0001014181-ST-TRIAD
+06/02/2025  16:07    <DIR>          APMF0001014183-VE-Vigilƒncia especial
+06/02/2025  16:07    <DIR>          APMF0001014188-PGR
+06/02/2025  16:07    <DIR>          APMF0001014210-GID
+06/02/2025  16:07    <DIR>          APMF0001014210-IV-Im¢veis para desinvestimento
+06/02/2025  16:07    <DIR>          APMF0001014219-LR-Collections
+06/02/2025  16:07    <DIR>          APMF0001014223-Controlo e KPI's
+06/02/2025  16:07    <DIR>          APMF0001014234 - Loan Tape BCE
+06/02/2025  16:07    <DIR>          APMF0001014238 - Green Finance - Operations Classification
+06/02/2025  16:07    <DIR>          APMF0001014286-GM-Sigom
+06/02/2025  16:07    <DIR>          APMF0001014420-CG-Contabilidade
+06/02/2025  16:07    <DIR>          APMF0001014435-IM-IFRS9
+17/02/2025  12:03         2ÿ220ÿ547 APMF0001014435-IM-IFRS9.zip
+06/02/2025  16:07    <DIR>          APMF0001014459-MD-OMDM
+17/03/2025  08:31    <DIR>          APMF0001014466-ALM
+06/02/2025  16:07    <DIR>          APMF0001014466-DM ALM
+06/02/2025  16:07    <DIR>          APMF0001014484-BancWare
+06/02/2025  16:07    <DIR>          APMF0001014487-BI-Basileia
+06/02/2025  16:07    <DIR>          APMF0001014512-DM Controlo Interno
+20/02/2025  12:18    <DIR>          APMF0001014514-CRC
+06/02/2025  16:07    <DIR>          APMF0001014514-DM RS
+27/02/2025  10:21    <DIR>          APMF0001014514-RQ-Risco de Cr‚dito
+27/02/2025  10:12    <DIR>          APMF0001014515-DW
+06/02/2025  16:07    <DIR>          APMF0001014524-Estrangeiro
+06/02/2025  16:07    <DIR>          APMF0001014538-GL-Globaliza‡ao
+06/02/2025  16:07    <DIR>          APMF0001014546-IC-Interface Contabilistica
+06/02/2025  16:07    <DIR>          APMF0001014561-MI-MIS
+06/02/2025  16:07    <DIR>          APMF0001014562-MO-Morosidade Contabilistica
+06/02/2025  16:07    <DIR>          APMF0001014585-RO-Risco Operacional
+06/02/2025  16:07    <DIR>          APMF0001014619-Consols
+06/02/2025  16:07    <DIR>          APMF0001014659-CoRep&FinRep
+06/02/2025  16:07    <DIR>          APMF0001014684 - Gestao de Empreendimentos
+24/02/2025  09:45    <DIR>          APMF0001021487 - Capital Tools
+06/02/2025  16:07    <DIR>          APMF0001021487-ND-New Default
+06/02/2025  16:07    <DIR>          APMT0100022257-OneALM MAT
+06/02/2025  16:07    <DIR>          Calculadora Rating
+17/03/2025  11:32                 0 lista_aplicacoes.txt
+09/11/2024  08:52             (420) This PC - Shortcut.lnk
+               4 File(s)      2ÿ221ÿ758 bytes
+              65 Dir(s)  294ÿ324ÿ928ÿ512 bytes free
