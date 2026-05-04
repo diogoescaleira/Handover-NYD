@@ -1,0 +1,30 @@
+CREATE TABLE bu_captools_work.T_12_00 AS
+SELECT
+
+zx.nomegrup as Entity_name,
+
+zx.zcliente_princ as Counterparty_identifier,
+
+'Type of identifier, other than LEI or MFI code' as Type_of_identifier, -- Confirmar se é sempre estático
+
+IF(zx.numero_de_entidades>1, '2 - Exposures to groups of connected clients', '1 - Exposures to individual clients') as group_or_individual,
+
+zx.tayd91c0_gelem30 as country_of_incorporation,
+
+CASE
+WHEN zx.contraparte_i_desc="instituicoes de credito" THEN "Financial corporations other than credit institutions"  -- Parece-me estranho 'instituicoes de credito' corresponderem a "Financial corporations other than credit institutions" não deveria ser 'outras instituicoes financeiras'
+WHEN zx.contraparte_i_desc="bancos centrais" THEN "Central banks"
+WHEN zx.contraparte_i_desc="particulares" THEN "Households"
+ELSE "Non-financial corporations"
+END as sector, -- Estas condições parecem-me estar mal/incompletas
+
+CASE
+WHEN zx.calculation="91" THEN "OBS.02 - Financial guarantees received"
+WHEN zx.calculation="93" THEN "OBS.01 - Loan commitments received"
+ELSE ""
+END as type_of_off_balance_exposure,
+
+-(zx.SUM_of_SUM_of_msaldo_final1) as amount
+
+from bu_captools_work.QUERY_FOR_LDRMASTER_0005_00_0005 AS zx
+;

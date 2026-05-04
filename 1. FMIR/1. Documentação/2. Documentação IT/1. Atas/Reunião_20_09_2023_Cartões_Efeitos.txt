@@ -1,0 +1,74 @@
+Reunião 20-09-2023 
+Intervenientes:
+	Cartões IT: Nuno Santo, José Martins
+	Efeitos IT: Andreia Martins, Paulo Silva
+	Contabilidade: Antonio Cadete
+
+INTUITO: 
+- Perceber quais as origens da informação de transações associadas a cartões e efeitos que passam por Sistemas de Pagamento.
+
+CONCLUSÕES:
+- Os cartões e efeitos passam apenas pelo sistema de pagamento SICOI;
+- As areas de IT de cartões e efeitos têm acesso a um universo diferente do que existe na Contabilidade;
+- Cartões IT:
+	-> A informação sobre transferências de cartões encontra-se em duas tabelas do datalake cd_cartoes.crt12 (Cartões de Débito) e cd_cartoes.crt90 (Cartões de Crédito)
+	-> Para filtrar apenas o universo de transações que passa por Sistemas de Pagamento (SICOI) é necessário forçar o campo """"indori"""" a 1; 
+	-> Os montantes associados a cada transação estão no campo """"infac"""";
+	-> Se necessário valor de comissões podemos aceder atracés dos campos """"impcomi"""";
+- Efeitos IT:
+	-> A informação sobre transferências de efeitos encontra-se na tabela do datalake cd_efeitos.eft09;
+	-> Os montantes associados estão no campo msaldo;
+	-> Foi-nos indicado o nome de Rui Torres como um possivel contacto de negócio para temas de efeitos;
+- Contabilidade:
+	-> A informação relativa a movimentos da contabilidade está espelhada no datalake na  tabela cd_contabilidade.cgt06_histparc;
+	-> A informação de cartões pode ser obtida filtrando a tabela pela conta cgyd06c0_nucta='589913012' e existe um campo (cgyd06c0_clacon) que nos permite distinguir o valor agregado liquido ('Y00') das componentes que entram para o cálculo (Y02-7);
+	-> A informação de efeitos pode ser obtida filtrando a tabela pela conta cgyd06c0_nucta='589911210' e existe um campo (cgyd06c0_clacon) que nos permite distinguir o valor agregado liquido ('CIC') das componentes que entram para o cálculo (CIH,CIG);
+	-> A inforamção que vem desta tabela usando os filtros referidos em cima garante que apenas se apanham os montantes de todas as transações que passam pelo SICOI e APENAS ESSES;
+
+TEMAS A EXPLORAR:
+- Recuperar a informação de transferências que passam por camâras de compensação através da contabilidade parece ser a solução mais direta e garante que os montantes estão certificados;
+- Existe no entanto a dificuldade de encontrar todas as contas que estão associadas a cada câmara de compensção/produto para poder filtrar a tabela cd_contabilidade.cgt06_histparc;
+- Perceber com o Pedro Mendes se as métricas de transações são efetivamente o somatório do valor absoluto de cada transação;
+- Tentar conciliar a informação obtida pela tabela de contabilidade com os reports da SIBS e do Banco de Portugal;
+
+MUITO IMPORTANTE DE ENTENDER:
+- Na contabilidade existem contas que conteem simultaneamente transações que passam por câmaras de compensação e outras que não? 
+- Se for este o caso esta tabela não poderá ser utilizada para diferenciar câmaras de compensação.
+- Nota que esta abordagem foi possivel para Cartões e Efeitos pois estes produtos têm apenas 1 conta associada para as quais as transações passam todas por 1 Sistema de Pagamento (SICOI)
+
+
+QUERIES DESENVOLVIDAS:
+------------------------------------------------Cartões------------------------------------------------
+--Total de montante transações em valor absoluto
+select sum(cgyd06c0_imph + cgyd06c0_impd)
+from cd_contabilidade.cgt06_histparc where data_date_part='2023-09-19' 
+and cgyd06c0_nucta='589913012' and cgyd06c0_clacon not in ('Y00');
+
+--Total de montante transações em valor liquído
+select sum(cgyd06c0_impd - cgyd06c0_imph)
+from cd_contabilidade.cgt06_histparc where data_date_part='2023-09-19' 
+and cgyd06c0_nucta='589913012' and cgyd06c0_clacon not in ('Y00');
+
+ou
+
+select cgyd06c0_imph + cgyd06c0_impd 
+from cd_contabilidade.cgt06_histparc where data_date_part='2023-09-19' 
+and cgyd06c0_nucta='589913012' and cgyd06c0_clacon in ('Y00');
+
+
+------------------------------------------------Efeitos------------------------------------------------
+--Total de montante transações em valor absoluto
+select sum(cgyd06c0_imph + cgyd06c0_impd)
+from cd_contabilidade.cgt06_histparc where data_date_part='2023-09-19' 
+and cgyd06c0_nucta='589911210' and cgyd06c0_clacon not in ('CIC');
+
+--Total de montante transações em valor liquído
+select sum(cgyd06c0_impd - cgyd06c0_imph)
+from cd_contabilidade.cgt06_histparc where data_date_part='2023-09-19' 
+and cgyd06c0_nucta='589911210' and cgyd06c0_clacon not in ('CIC');
+
+ou
+
+select cgyd06c0_imph + cgyd06c0_impd 
+from cd_contabilidade.cgt06_histparc where data_date_part='2023-09-19' 
+and cgyd06c0_nucta='589911210' and cgyd06c0_clacon in ('CIC');

@@ -1,0 +1,39 @@
+CREATE TABLE bu_captools_work.T_08_00 AS
+SELECT
+
+cast(row_number() over (order by zx.zcliente) as string) as Number,
+
+CASE
+WHEN zx.contraparte_i_desc="particulares" THEN "c001x   - Households"
+WHEN zx.contraparte_i_desc="outras empresas nao financeiras" THEN "c002x   - Micro & SME"
+WHEN zx.contraparte_i_desc="outras empresas nao financeiras" THEN"c003x   - Corporates"     --Obviamente isto não pode ficar assim, temos a mesma condição com dois outputs possiveis, nas outras sheets esta distinção normalmente é feita através da flag_pme que não existe na tabela fonte da T_08_00
+WHEN zx.contraparte_i_desc="instituicoes de credito" THEN "c004x   - Institutions"
+WHEN zx.contraparte_i_desc="outras instituicoes financeiras" THEN "c005x   - Other financial corporations"
+WHEN (zx.contraparte_i_desc="setor publico" OR zx.contraparte_i_desc="bancos centrais")  THEN "c008x   - Government, central banks & supranationals"
+ELSE ""
+END as Column_T_01,
+
+"Rank 9 - Ranking in insolvency (master scale)" as Insolvency_ranking, -- Confirmar que este campo é estático, noutras sheets este campo tem uma fórmula associada
+
+IF(zx.cod_ref_cq = "" OR zx.cod_ref_cq IS NULL, zx.zcliente, zx.cod_ref_cq) as Master_agreement_ID,
+
+"" as Type_of_MA, --Este campo não está preenchido, necessário perceber
+
+zx.gcliente as Entity_name_of_lending_entity,
+
+IF(zx.clei = "#" OR zx.clei = "" OR zx.clei IS NULL, zx.zcliente, zx.clei) as Counterparty_identifier, --Esta condição antes tinha o zx.COUNT_of_msaldo_final em vez do zx.clei na condição else, alteramos esta lógica pois pareceu-nos obvio que um Count não devia ser colocado em vez do codigo lei pertinente para este campo
+
+IF(zx.clei = "#" OR zx.clei = "" OR zx.clei IS NULL, "Type of identifier, other than LEI or MFI code", "LEI code") as Type_of_identifier,
+
+zx.tayd91c0_gelem30 as Country_of_counterparty,
+
+IF(zx.gcliente = "BANCO CABO VERDE-PRAIA" OR zx.gcliente="BANCO DE PORTUGAL", "PORTUGAL", "UNITED KINGDOM") as Governing_law_MA_single_deal, -- Esta condição provavelmente terá de ser substituida por parametrizações
+
+zx.COUNT_of_msaldo_final as Number_of_transactions_covered,
+
+zx.SUM_of_msaldo_final as Net_amount_of_funding,
+
+-zx.SUM_of_Calculation1 as Net_amount_of_collateral
+
+from bu_captools_work.QUERY_FOR_FILTER_FOR_QUERY_003C AS zx
+;
